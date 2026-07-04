@@ -11,6 +11,9 @@ jobs:
     steps:
       - name: Trigger production reminder cron
         run: |
-          curl --fail-with-body -sS \
+          response=$(curl --fail-with-body -sS \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "https://health-tracker-ten-brown.vercel.app/api/cron/reminders"
+            -w "\nHTTP_STATUS:%{http_code}" \
+            "https://lurea.vercel.app/api/cron/reminders")
+          echo "$response"
+          echo "$response" | grep -q "HTTP_STATUS:200" || exit 1
