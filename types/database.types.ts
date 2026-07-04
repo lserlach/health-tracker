@@ -32,8 +32,38 @@ export interface Settings {
   glucose_fasting_limit: number;
   glucose_after_meal_limit: number;
   notifications_enabled: boolean;
+  notify_glucose: boolean;
+  notify_medications: boolean;
+  notify_weight: boolean;
+  notify_blood_pressure: boolean;
+  notify_glucose_time: string;
+  notify_glucose_repeat_count: number;
+  notify_glucose_times: string[];
+  notify_weight_time: string;
+  notify_weight_repeat_count: number;
+  notify_weight_times: string[];
+  notify_blood_pressure_time: string;
+  notify_blood_pressure_repeat_count: number;
+  notify_blood_pressure_times: string[];
+  notify_medications_repeat_count: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface PushSubscription {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  created_at: string;
+}
+
+export interface NotificationReminderSent {
+  id: string;
+  user_id: string;
+  reminder_key: string;
+  sent_at: string;
 }
 
 export interface Medication {
@@ -58,6 +88,17 @@ export interface MedicationLog {
   taken_at: string | null;
   status: MedicationLogStatus;
   note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MealLog {
+  id: string;
+  user_id: string;
+  eaten_at: string;
+  meal_text: string;
+  remind_at: string;
+  reminder_sent: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -103,11 +144,18 @@ export interface Database {
     Tables: {
       profiles: { Row: Profile; Insert: Partial<Profile>; Update: Partial<Profile> };
       settings: { Row: Settings; Insert: Partial<Settings>; Update: Partial<Settings> };
+      push_subscriptions: { Row: PushSubscription; Insert: Partial<PushSubscription>; Update: Partial<PushSubscription> };
+      notification_reminders_sent: { Row: NotificationReminderSent; Insert: Partial<NotificationReminderSent>; Update: Partial<NotificationReminderSent> };
+      meal_logs: { Row: MealLog; Insert: Partial<MealLog>; Update: Partial<MealLog> };
       medications: { Row: Medication; Insert: Partial<Medication>; Update: Partial<Medication> };
       medication_logs: { Row: MedicationLog; Insert: Partial<MedicationLog>; Update: Partial<MedicationLog> };
       glucose_logs: { Row: GlucoseLog; Insert: Partial<GlucoseLog>; Update: Partial<GlucoseLog> };
       weight_logs: { Row: WeightLog; Insert: Partial<WeightLog>; Update: Partial<WeightLog> };
       blood_pressure_logs: { Row: BloodPressureLog; Insert: Partial<BloodPressureLog>; Update: Partial<BloodPressureLog> };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 }

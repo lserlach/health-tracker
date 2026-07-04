@@ -42,7 +42,7 @@ export function GlucoseList({ logs, onEdit, onDelete }: GlucoseListProps) {
               <button
                 type="button"
                 onClick={() => onDelete(log)}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-red-50 hover:text-red-600"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-danger/12 hover:text-danger"
                 aria-label="Удалить"
               >
                 <Trash size={18} />

@@ -64,7 +64,7 @@ export function LoginForm() {
 
       <Card>
         {configError ? (
-          <p className="text-sm text-red-600">{configError}</p>
+          <p className="text-sm text-danger">{configError}</p>
         ) : (
           <form className="space-y-4" onSubmit={handleSubmit}>
             <Input
@@ -80,7 +80,7 @@ export function LoginForm() {
             />
 
             {(error ?? initialError) ? (
-              <p className="text-sm text-red-600">{error ?? initialError}</p>
+              <p className="text-sm text-danger">{error ?? initialError}</p>
             ) : null}
 
             <Button

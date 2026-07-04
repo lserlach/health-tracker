@@ -15,7 +15,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label ? (
           <label
             htmlFor={inputId}
-            className="text-sm font-medium text-foreground"
+            className="text-sm font-semibold text-muted-foreground"
           >
             {label}
           </label>
@@ -24,14 +24,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           id={inputId}
           className={cn(
-            "min-h-12 w-full rounded-(--radius-button) border border-border bg-card px-4 text-base text-foreground",
+            "min-h-12 w-full rounded-(--radius-button) border-0 bg-background px-4 text-sm text-field-foreground",
             "placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-            error && "border-red-300 focus-visible:ring-red-200",
+            error && "ring-2 ring-danger/30 focus-visible:ring-danger/30",
             className,
           )}
           {...props}
         />
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
       </div>
     );
   },

@@ -24,6 +24,10 @@ export function formatDate(value: string | Date) {
   return format(date, "d MMMM yyyy", { locale: ru });
 }
 
+export function formatTodayHeaderDate(date: Date = new Date()) {
+  return format(date, "d MMMM", { locale: ru });
+}
+
 export function getTodayRange() {
   const now = new Date();
   return {

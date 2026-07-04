@@ -13,13 +13,33 @@ export function buildScheduledFor(date: Date, time: string) {
   return scheduled.toISOString();
 }
 
+export async function fetchMedicationLogsForDay(
+  supabase: SupabaseClient,
+  userId: string,
+  date: Date,
+) {
+  const { start, end } = getDayRange(date);
+
+  const { data: logs, error: logsError } = await supabase
+    .from("medication_logs")
+    .select("*, medications(name, dosage, icon, intake_relation)")
+    .eq("user_id", userId)
+    .gte("scheduled_for", start)
+    .lte("scheduled_for", end)
+    .order("scheduled_for", { ascending: true });
+
+  if (logsError) {
+    return { error: logsError.message, data: [] as MedicationLogWithMedication[] };
+  }
+
+  return { data: (logs ?? []) as MedicationLogWithMedication[] };
+}
+
 export async function ensureTodayMedicationLogs(
   supabase: SupabaseClient,
   userId: string,
   date: Date = new Date(),
 ) {
-  const { start, end } = getDayRange(date);
-
   const { data: medications, error: medsError } = await supabase
     .from("medications")
     .select("*")
@@ -49,17 +69,5 @@ export async function ensureTodayMedicationLogs(
     });
   }
 
-  const { data: logs, error: logsError } = await supabase
-    .from("medication_logs")
-    .select("*, medications(name, dosage, icon, intake_relation)")
-    .eq("user_id", userId)
-    .gte("scheduled_for", start)
-    .lte("scheduled_for", end)
-    .order("scheduled_for", { ascending: true });
-
-  if (logsError) {
-    return { error: logsError.message, data: [] as MedicationLogWithMedication[] };
-  }
-
-  return { data: (logs ?? []) as MedicationLogWithMedication[] };
+  return fetchMedicationLogsForDay(supabase, userId, date);
 }

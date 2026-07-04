@@ -35,7 +35,7 @@ async function finalizeLogin(
   } = await supabase.auth.getUser();
 
   if (user) {
-    await ensureUserRecords(user.id, user.email ?? "", login);
+    await ensureUserRecords(supabase, user.id, user.email ?? "", login);
     await supabase.from("profiles").update({ login }).eq("id", user.id);
   }
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { getAuthenticatedUser, ensureUserRecords } from "@/lib/supabase/auth-helpers";
+import { getAuthenticatedUser } from "@/lib/supabase/auth-helpers";
 import { formatSupabaseError } from "@/lib/supabase/format-error";
 import { computeReportData, formatPeriodLabel } from "@/features/reports/lib/compute-report-data";
 import {
@@ -21,8 +21,6 @@ export async function fetchReportDataAction(
 ): Promise<{ data?: ReportData; error?: string }> {
   const { supabase, user, error: authError } = await getAuthenticatedUser();
   if (!user) return { error: authError };
-
-  await ensureUserRecords(user.id, user.email ?? "");
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
   const { from, to } = getReportDateRange(

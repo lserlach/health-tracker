@@ -57,12 +57,21 @@ export function MedicationsManagePageClient() {
       return;
     }
 
+    if (result.data) {
+      setMedications((current) =>
+        editing
+          ? current.map((medication) =>
+              medication.id === editing.id ? result.data! : medication,
+            )
+          : [result.data, ...current],
+      );
+    }
+
     setToast({
       message: editing ? "Лекарство обновлено" : "Лекарство добавлено",
       variant: "success",
     });
     setSheetOpen(false);
-    await load();
   }
 
   return (
@@ -95,7 +104,7 @@ export function MedicationsManagePageClient() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold">{medication.name}</p>
+                      <p className="font-heading font-semibold">{medication.name}</p>
                       {!medication.is_active ? <Badge variant="muted">Неактивно</Badge> : null}
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
@@ -146,13 +155,20 @@ export function MedicationsManagePageClient() {
         onCancel={() => setDeleteTarget(null)}
         onConfirm={async () => {
           if (!deleteTarget) return;
-          const result = await deleteMedicationAction(deleteTarget.id);
+
+          const deletedMedication = deleteTarget;
+          setMedications((current) =>
+            current.filter((medication) => medication.id !== deletedMedication.id),
+          );
+          setDeleteTarget(null);
+
+          const result = await deleteMedicationAction(deletedMedication.id);
           if (result.error) {
+            setMedications((current) => [deletedMedication, ...current]);
             setToast({ message: result.error, variant: "error" });
             return;
           }
-          setDeleteTarget(null);
-          await load();
+
           setToast({ message: "Лекарство удалено", variant: "success" });
         }}
       />

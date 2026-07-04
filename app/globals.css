@@ -1,41 +1,78 @@
 @import "tailwindcss";
 
+@source inline("text-danger text-warning-foreground bg-danger/12 bg-danger/18 border-danger/20 ring-danger/30 shadow-danger/10 hover:bg-danger hover:bg-danger/12 hover:bg-danger/18 hover:text-danger");
+
 :root {
   --background: #faf8ff;
-  --foreground: #1f2937;
+  --foreground: #342e45;
+  --field-foreground: #2f2842;
   --card: #ffffff;
-  --primary: #8b5cf6;
-  --primary-soft: #ede9fe;
-  --muted: #9ca3af;
-  --muted-foreground: #6b7280;
-  --warning: #fde68a;
-  --warning-foreground: #92400e;
-  --success: #bbf7d0;
-  --success-foreground: #166534;
-  --border: #e9e3f5;
+  --primary: #9279ff;
+  --primary-soft: #eeeaff;
+  --primary-gradient-start: #c8bbff;
+  --primary-gradient-end: #5f48d4;
+  --primary-gradient: linear-gradient(
+    160deg,
+    var(--primary-gradient-start) 0%,
+    var(--primary) 52%,
+    var(--primary-gradient-end) 100%
+  );
+  --muted: #9d97ad;
+  --muted-foreground: #6f6985;
+  --danger: #ec4899;
+  --warning: #ec4899;
+  --warning-foreground: var(--danger);
+  --success: #eeeaff;
+  --success-foreground: #9279ff;
+  --border: #ebe6f8;
+  --letter-spacing: -2%;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-field-foreground: var(--field-foreground);
   --color-card: var(--card);
   --color-primary: var(--primary);
   --color-primary-soft: var(--primary-soft);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: #ec4899;
+  --color-warning: #ec4899;
+  --color-warning-foreground: #ec4899;
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-border: var(--border);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --radius-card: 1.25rem;
-  --radius-button: 1rem;
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --font-heading: var(--font-inter-tight), system-ui, sans-serif;
+  --radius-card: 1rem;
+  --radius-button: 0.75rem;
+  --tracking-normal: var(--letter-spacing);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-manrope), system-ui, sans-serif;
+  letter-spacing: var(--letter-spacing);
+}
+
+button,
+input,
+textarea,
+select {
+  letter-spacing: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-inter-tight), system-ui, sans-serif;
+}
+
+.bg-primary-gradient {
+  background: var(--primary-gradient);
 }

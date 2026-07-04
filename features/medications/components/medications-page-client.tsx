@@ -36,6 +36,7 @@ function getStatusBadge(status: MedicationLogWithMedication["status"]) {
 export function MedicationsPageClient({ minDateKey }: { minDateKey: string }) {
   const [dateKey, setDateKey] = useState(toDateKey());
   const [logs, setLogs] = useState<MedicationLogWithMedication[]>([]);
+  const [pendingLogId, setPendingLogId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(
     null,
   );
@@ -63,13 +64,28 @@ export function MedicationsPageClient({ minDateKey }: { minDateKey: string }) {
     log: MedicationLogWithMedication,
     status: MedicationLogWithMedication["status"],
   ) {
-    const takenAt = status === "taken" ? log.scheduled_for : undefined;
-    const result = await updateMedicationLogStatusAction(log.id, status, takenAt);
+    const previousLogs = logs;
+    const takenAt = status === "taken" ? log.scheduled_for : null;
+
+    setPendingLogId(log.id);
+    setLogs((current) =>
+      current.map((item) =>
+        item.id === log.id ? { ...item, status, taken_at: takenAt } : item,
+      ),
+    );
+
+    const result = await updateMedicationLogStatusAction(
+      log.id,
+      status,
+      takenAt ?? undefined,
+    );
+
+    setPendingLogId(null);
+
     if (result.error) {
+      setLogs(previousLogs);
       setToast({ message: result.error, variant: "error" });
-      return;
     }
-    await load();
   }
 
   return (
@@ -94,7 +110,7 @@ export function MedicationsPageClient({ minDateKey }: { minDateKey: string }) {
           <Card className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm text-muted-foreground">За день</p>
-              <p className="text-2xl font-semibold">
+              <p className="font-heading text-2xl font-semibold">
                 {stats.taken}/{stats.total}
               </p>
             </div>
@@ -124,6 +140,7 @@ export function MedicationsPageClient({ minDateKey }: { minDateKey: string }) {
               dateKey === toDateKey() &&
               log.status === "pending" &&
               new Date(log.scheduled_for).getTime() < Date.now();
+            const isPending = pendingLogId === log.id;
 
             return (
               <Card
@@ -136,7 +153,7 @@ export function MedicationsPageClient({ minDateKey }: { minDateKey: string }) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold">{log.medications.name}</p>
+                      <p className="font-heading font-semibold">{log.medications.name}</p>
                       <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
@@ -152,6 +169,7 @@ export function MedicationsPageClient({ minDateKey }: { minDateKey: string }) {
                   <Button
                     variant={log.status === "taken" ? "primary" : "secondary"}
                     className="flex-1"
+                    disabled={isPending}
                     onClick={() =>
                       void setStatus(log, log.status === "taken" ? "pending" : "taken")
                     }
@@ -162,6 +180,7 @@ export function MedicationsPageClient({ minDateKey }: { minDateKey: string }) {
                   <Button
                     variant="ghost"
                     className="flex-1"
+                    disabled={isPending}
                     onClick={() =>
                       void setStatus(log, log.status === "skipped" ? "pending" : "skipped")
                     }

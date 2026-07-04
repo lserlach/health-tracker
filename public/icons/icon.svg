@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="=52=8: 74>@>2LO">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Дневник здоровья">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#a78bfa"/>
-      <stop offset="100%" stop-color="#8b5cf6"/>
+      <stop offset="0%" stop-color="#A992FF"/>
+      <stop offset="100%" stop-color="#9279FF"/>
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
   <path fill="#ffffff" d="M256 392c-72-48-120-92-120-152 0-44 32-76 76-76 28 0 44 12 44 12s16-12 44-12c44 0 76 32 76 76 0 60-48 104-120 152z"/>
-  <circle cx="256" cy="176" r="18" fill="#ede9fe"/>
+  <circle cx="256" cy="176" r="18" fill="#EEEAFF"/>
 </svg>

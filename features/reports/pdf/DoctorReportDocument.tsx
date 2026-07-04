@@ -12,7 +12,7 @@ const styles = StyleSheet.create({
     padding: 32,
     fontFamily: "Roboto",
     fontSize: 10,
-    color: "#1f2937",
+    color: "#342e45",
   },
   title: {
     fontSize: 18,
@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 11,
-    color: "#6b7280",
+    color: "#6f6985",
     marginBottom: 16,
   },
   sectionTitle: {
@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   summary: {
-    backgroundColor: "#f5f3ff",
+    backgroundColor: "#f4f1ff",
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#ede9fe",
+    backgroundColor: "#eeeaff",
     paddingVertical: 6,
     paddingHorizontal: 4,
     fontWeight: 700,
@@ -49,12 +49,12 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#ebe6f8",
   },
   cellSm: { width: "18%" },
   cellMd: { width: "24%" },
   cellLg: { width: "34%" },
-  muted: { color: "#6b7280", fontSize: 9, marginTop: 12 },
+  muted: { color: "#6f6985", fontSize: 9, marginTop: 12 },
 });
 
 function formatDateTime(value: string) {

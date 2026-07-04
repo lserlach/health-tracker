@@ -12,7 +12,7 @@ const variantStyles = {
   secondary:
     "bg-primary-soft text-foreground hover:bg-primary-soft/80 border border-border",
   ghost: "bg-transparent text-foreground hover:bg-primary-soft/60",
-  danger: "bg-red-50 text-red-700 hover:bg-red-100 border border-red-100",
+  danger: "bg-danger/12 text-danger hover:bg-danger/18 border border-danger/20",
 };
 
 const sizeStyles = {

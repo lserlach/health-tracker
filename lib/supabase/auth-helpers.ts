@@ -1,11 +1,14 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 export async function getAuthenticatedUser() {
   const supabase = await createClient();
   const {
-    data: { user },
+    data: { session },
     error,
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getSession();
+
+  const user = session?.user ?? null;
 
   if (error || !user) {
     return { supabase, user: null, error: error?.message ?? "Не авторизован" };
@@ -14,9 +17,12 @@ export async function getAuthenticatedUser() {
   return { supabase, user, error: null };
 }
 
-export async function ensureUserRecords(userId: string, email: string, login?: string) {
-  const supabase = await createClient();
-
+export async function ensureUserRecords(
+  supabase: SupabaseClient,
+  userId: string,
+  email: string,
+  login?: string,
+) {
   const { data: profile } = await supabase
     .from("profiles")
     .select("id")

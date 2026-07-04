@@ -1,99 +1,87 @@
 "use client";
 
-import { format, parseISO } from "date-fns";
-import { ru } from "date-fns/locale";
 import Link from "next/link";
-import { Drop, Heartbeat, Pill, Plus, Scales, WarningCircle } from "@phosphor-icons/react";
 import { AppHeader } from "@/components/layout/app-header";
 import { PageContainer } from "@/components/layout/page-container";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
-import { cn } from "@/lib/utils/cn";
-import type { BloodPressureLog, GlucoseLog, WeightLog } from "@/types/database.types";
-
-const quickActions = [
-  { href: "/glucose", label: "Сахар", icon: Drop },
-  { href: "/glucose", label: "После еды", icon: Plus },
-  { href: "/medications", label: "Лекарство", icon: Pill },
-  { href: "/blood-pressure", label: "Давление", icon: Heartbeat },
-  { href: "/weight", label: "Вес", icon: Scales },
-] as const;
-
-const quickActionClassName = cn(
-  "flex h-auto min-h-[5.5rem] w-full flex-col items-center justify-center gap-2 rounded-(--radius-button) border border-border bg-primary-soft px-4 py-4 text-sm font-medium text-foreground transition-colors hover:bg-primary-soft/80",
-);
+import { DailyProgressTracker, type DailyProgressStatus } from "@/features/dashboard/components/daily-progress-tracker";
+import { HomeQuickActions } from "@/features/dashboard/components/home-quick-actions";
+import { PregnancyProgressBar } from "@/features/dashboard/components/pregnancy-progress-bar";
+import { UpcomingNotificationsSection } from "@/features/dashboard/components/upcoming-notifications-section";
+import { isElevatedBloodPressure } from "@/features/blood-pressure/lib/validation";
+import type { MedicationLogWithMedication } from "@/features/medications/services/generate-daily-logs";
+import type { TodayNotificationItem } from "@/features/notifications/lib/today-notification-queue";
+import type { PregnancyProgress } from "@/lib/pregnancy/calculate";
+import { formatTodayHeaderDate } from "@/lib/dates/format";
+import type { BloodPressureLog, GlucoseLog } from "@/types/database.types";
 
 interface HomePageClientProps {
   lastGlucose: GlucoseLog | null;
-  hasHighGlucoseToday: boolean;
   lastBp: BloodPressureLog | null;
-  lastWeight: WeightLog | null;
-  medicationTaken: number;
-  medicationTotal: number;
-  pregnancyWeek: number | null;
+  medicationLogs: MedicationLogWithMedication[];
+  dailyProgress: DailyProgressStatus;
+  pregnancyAgeLabel: string | null;
+  pregnancyProgress: PregnancyProgress | null;
   daysUntilDue: number | null;
-  dueDate: string | null;
+  upcomingNotifications: TodayNotificationItem[];
+  notificationsEnabled: boolean;
+  hasActiveNotificationRules: boolean;
 }
 
-function formatDueLabel(daysUntilDue: number | null, dueDate: string | null) {
-  if (daysUntilDue == null || !dueDate) return null;
-  const formattedDate = format(parseISO(dueDate), "d MMMM yyyy", { locale: ru });
+function formatDaysWord(count: number) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return "день";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return "дня";
+  return "дней";
+}
+
+function formatDueLabel(daysUntilDue: number | null) {
+  if (daysUntilDue == null) return null;
+
+  const absDays = Math.abs(daysUntilDue);
+  const daysWord = formatDaysWord(absDays);
 
   if (daysUntilDue < 0) {
-    return `ПДР была ${Math.abs(daysUntilDue)} дн. назад (${formattedDate})`;
+    return `Роды были ${absDays} ${daysWord} назад`;
   }
   if (daysUntilDue === 0) {
-    return `ПДР сегодня · ${formattedDate}`;
+    return "Роды сегодня";
   }
-  return `До ПДР: ${daysUntilDue} дн. · ${formattedDate}`;
+  return `До родов: ${absDays} ${daysWord}`;
 }
 
 export function HomePageClient({
   lastGlucose,
-  hasHighGlucoseToday,
   lastBp,
-  lastWeight,
-  medicationTaken,
-  medicationTotal,
-  pregnancyWeek,
+  medicationLogs,
+  dailyProgress,
+  pregnancyAgeLabel,
+  pregnancyProgress,
   daysUntilDue,
-  dueDate,
+  upcomingNotifications,
+  notificationsEnabled,
+  hasActiveNotificationRules,
 }: HomePageClientProps) {
-  const todos: string[] = [];
-
-  if (!lastGlucose) {
-    todos.push("Измерить сахар натощак");
-  }
-  if (!lastWeight) {
-    todos.push("Внести вес утром");
-  }
-  if (medicationTotal > 0 && medicationTaken < medicationTotal) {
-    todos.push(`Принять лекарства (${medicationTaken}/${medicationTotal})`);
-  }
+  const daysUntilBirthLabel = formatDueLabel(daysUntilDue);
 
   return (
     <PageContainer>
-      <AppHeader title="Сегодня" showActions />
+      <AppHeader title={`Сегодня, ${formatTodayHeaderDate()}`} showActions className="mb-2" />
 
-      {pregnancyWeek != null ? (
-        <Card className="mb-4 bg-primary-soft/60">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm text-muted-foreground">Беременность</p>
-              <p className="text-2xl font-semibold">{pregnancyWeek} неделя</p>
-              {formatDueLabel(daysUntilDue, dueDate) ? (
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {formatDueLabel(daysUntilDue, dueDate)}
-                </p>
-              ) : null}
-            </div>
-            <Link
-              href="/settings"
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              Настройки
-            </Link>
+      {pregnancyAgeLabel ? (
+        <Card className="mb-4 border-0 bg-primary-gradient text-white shadow-md shadow-primary/25">
+          <div>
+            <p className="text-sm text-white/75">Текущий срок</p>
+            <p className="font-heading text-2xl font-semibold">{pregnancyAgeLabel}</p>
+            {pregnancyProgress ? (
+              <PregnancyProgressBar
+                progress={pregnancyProgress}
+                dueLabel={daysUntilBirthLabel}
+                className="mt-4"
+              />
+            ) : null}
           </div>
         </Card>
       ) : (
@@ -106,67 +94,47 @@ export function HomePageClient({
         </Card>
       )}
 
-      {hasHighGlucoseToday ? (
-        <Card className="mb-4 flex items-center gap-3 border-warning bg-warning/20">
-          <WarningCircle size={22} className="text-warning-foreground" />
-          <p className="text-sm text-warning-foreground">
-            Сегодня были повышенные значения сахара
-          </p>
-        </Card>
-      ) : null}
+      <DailyProgressTracker status={dailyProgress} />
+
+      <HomeQuickActions medicationLogs={medicationLogs} />
 
       <section className="mb-6">
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">Быстрые действия</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {quickActions.map(({ href, label, icon: Icon }) => (
-            <Link key={label} href={href} className={quickActionClassName}>
-              <Icon size={24} weight="regular" />
-              <span>{label}</span>
-            </Link>
-          ))}
+        <h2 className="mb-3 text-sm font-medium text-muted-foreground">Последние показатели</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard
+            label="Последний сахар"
+            value={lastGlucose ? `${Number(lastGlucose.value).toFixed(1)}` : "—"}
+            hint={
+              lastGlucose ? (lastGlucose.is_high ? "повышено" : "в норме") : "Сегодня нет записей"
+            }
+            hintVariant={lastGlucose ? (lastGlucose.is_high ? "warning" : "success") : undefined}
+          />
+          <StatCard
+            label="Давление"
+            value={lastBp ? `${lastBp.systolic}/${lastBp.diastolic}` : "—"}
+            hint={
+              lastBp
+                ? isElevatedBloodPressure(lastBp.systolic, lastBp.diastolic)
+                  ? "повышено"
+                  : "в норме"
+                : "Сегодня нет записей"
+            }
+            hintVariant={
+              lastBp
+                ? isElevatedBloodPressure(lastBp.systolic, lastBp.diastolic)
+                  ? "warning"
+                  : "success"
+                : undefined
+            }
+          />
         </div>
       </section>
 
-      <section className="mb-6 grid grid-cols-2 gap-3">
-        <StatCard
-          label="Последний сахар"
-          value={lastGlucose ? `${Number(lastGlucose.value).toFixed(1)}` : "—"}
-          hint={lastGlucose ? (lastGlucose.is_high ? "повышено" : "ммоль/л") : "Сегодня нет записей"}
-        />
-        <StatCard
-          label="Давление"
-          value={lastBp ? `${lastBp.systolic}/${lastBp.diastolic}` : "—"}
-        />
-        <StatCard
-          label="Вес"
-          value={lastWeight ? `${Number(lastWeight.weight).toFixed(1)} кг` : "—"}
-        />
-        <StatCard
-          label="Лекарства"
-          value={medicationTotal > 0 ? `${medicationTaken}/${medicationTotal}` : "—"}
-          hint={medicationTotal > 0 ? "принято сегодня" : "Не добавлены"}
-        />
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-          Что нужно сделать сегодня
-        </h2>
-        {todos.length === 0 ? (
-          <Card className="text-sm text-muted-foreground">
-            На сегодня базовые напоминания выполнены.
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {todos.map((item) => (
-              <Card key={item} className="flex items-center justify-between gap-3">
-                <span className="text-sm">{item}</span>
-                <Badge variant="muted">Напоминание</Badge>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
+      <UpcomingNotificationsSection
+        items={upcomingNotifications}
+        notificationsEnabled={notificationsEnabled}
+        hasActiveRules={hasActiveNotificationRules}
+      />
     </PageContainer>
   );
 }

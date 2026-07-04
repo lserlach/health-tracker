@@ -32,12 +32,19 @@ interface BloodPressurePageClientProps {
   minDateKey: string;
 }
 
+function sortBloodPressureLogs(logs: BloodPressureLog[]) {
+  return [...logs].sort(
+    (a, b) => new Date(b.measured_at).getTime() - new Date(a.measured_at).getTime(),
+  );
+}
+
 export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientProps) {
   const [dateKey, setDateKey] = useState(toDateKey());
   const [logs, setLogs] = useState<BloodPressureLog[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<BloodPressureLog | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BloodPressureLog | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(
     null,
   );
@@ -92,15 +99,27 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
       return;
     }
 
+    setIsSubmitting(true);
     const result = await saveBloodPressureLogAction(parsed.data, editing?.id);
+    setIsSubmitting(false);
+
     if (result.error) {
       setToast({ message: result.error, variant: "error" });
       return;
     }
 
+    if (result.data) {
+      setLogs((current) =>
+        sortBloodPressureLogs(
+          editing
+            ? current.map((log) => (log.id === editing.id ? result.data! : log))
+            : [result.data, ...current],
+        ),
+      );
+    }
+
     setToast({ message: editing ? "Запись обновлена" : "Запись добавлена", variant: "success" });
     setSheetOpen(false);
-    await load();
   }
 
   return (
@@ -165,8 +184,8 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
             <Input label="Нижнее" type="number" {...form.register("diastolic", { valueAsNumber: true })} />
           </div>
           <Input label="Пульс (необязательно)" type="number" {...form.register("pulse")} />
-          <Button type="submit" className="w-full">
-            Сохранить
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Сохраняем..." : "Сохранить"}
           </Button>
         </form>
       </BottomSheet>
@@ -177,13 +196,18 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
         onCancel={() => setDeleteTarget(null)}
         onConfirm={async () => {
           if (!deleteTarget) return;
-          const result = await deleteBloodPressureLogAction(deleteTarget.id);
+
+          const deletedLog = deleteTarget;
+          setLogs((current) => current.filter((log) => log.id !== deletedLog.id));
+          setDeleteTarget(null);
+
+          const result = await deleteBloodPressureLogAction(deletedLog.id);
           if (result.error) {
+            setLogs((current) => sortBloodPressureLogs([deletedLog, ...current]));
             setToast({ message: result.error, variant: "error" });
             return;
           }
-          setDeleteTarget(null);
-          await load();
+
           setToast({ message: "Запись удалена", variant: "success" });
         }}
       />

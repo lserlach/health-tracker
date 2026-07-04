@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getAuthenticatedUser, ensureUserRecords } from "@/lib/supabase/auth-helpers";
+import { getAuthenticatedUser } from "@/lib/supabase/auth-helpers";
 import { formatSupabaseError } from "@/lib/supabase/format-error";
 import {
   medicationFormSchema,
@@ -42,19 +42,15 @@ export async function saveMedicationAction(values: MedicationFormValues, id?: st
   const { supabase, user, error: authError } = await getAuthenticatedUser();
   if (!user) return { error: authError };
 
-  await ensureUserRecords(user.id, user.email ?? "");
-
   const payload = mapForm(parsed.data, user.id);
-  const { error } = id
-    ? await supabase.from("medications").update(payload).eq("id", id)
-    : await supabase.from("medications").insert(payload);
+  const { data, error } = id
+    ? await supabase.from("medications").update(payload).eq("id", id).select().single()
+    : await supabase.from("medications").insert(payload).select().single();
 
   if (error) return { error: formatSupabaseError(error) };
 
-  revalidatePath("/medications");
-  revalidatePath("/medications/manage");
   revalidatePath("/");
-  return { success: true };
+  return { data: data as Medication };
 }
 
 export async function deleteMedicationAction(id: string) {
@@ -64,8 +60,6 @@ export async function deleteMedicationAction(id: string) {
   const { error } = await supabase.from("medications").delete().eq("id", id);
   if (error) return { error: formatSupabaseError(error) };
 
-  revalidatePath("/medications");
-  revalidatePath("/medications/manage");
   revalidatePath("/");
   return { success: true };
 }

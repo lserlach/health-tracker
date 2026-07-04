@@ -13,6 +13,10 @@ export function isUnusualBloodPressure(systolic: number, diastolic: number) {
   return systolic > 140 || systolic < 90 || diastolic > 90 || diastolic < 60;
 }
 
+export function isElevatedBloodPressure(systolic: number, diastolic: number) {
+  return systolic > 140 || diastolic > 90;
+}
+
 export function parsePulse(value?: string) {
   if (!value?.trim()) return null;
   const parsed = Number(value);

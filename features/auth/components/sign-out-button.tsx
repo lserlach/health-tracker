@@ -20,8 +20,8 @@ export function SignOutButton() {
   return (
     <Button
       type="button"
-      variant="secondary"
-      className="w-full"
+      variant="danger"
+      className="w-full border-0"
       onClick={handleSignOut}
       disabled={isLoading}
     >

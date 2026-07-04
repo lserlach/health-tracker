@@ -47,7 +47,7 @@ export function DayNavigator({ dateKey, onChange, minDateKey, className }: DayNa
       </button>
 
       <div className="min-w-0 text-center">
-        <p className="truncate text-sm font-medium text-foreground">{formatDayLabel(dateKey)}</p>
+        <p className="truncate font-heading text-sm font-medium text-foreground">{formatDayLabel(dateKey)}</p>
         <p className="text-xs text-muted-foreground">{dateKey}</p>
       </div>
 

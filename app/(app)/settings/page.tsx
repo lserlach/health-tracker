@@ -18,7 +18,6 @@ export default async function SettingsPage() {
 
   return (
     <SettingsPageClient
-      email={user?.email ?? "—"}
       initialProfile={profileRes.data ?? null}
       initialSettings={settingsRes.data ?? null}
     />

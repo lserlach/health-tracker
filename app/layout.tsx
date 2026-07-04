@@ -1,16 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter_Tight, Manrope } from "next/font/google";
 import { DecorBackground } from "@/components/layout/decor-background";
+import { ServiceWorkerRegister } from "@/components/notifications/service-worker-register";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const interTight = Inter_Tight({
+  variable: "--font-inter-tight",
+  subsets: ["latin", "cyrillic"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const manrope = Manrope({
+  variable: "--font-manrope",
+  subsets: ["latin", "cyrillic"],
 });
 
 export const metadata: Metadata = {
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#8b5cf6",
+  themeColor: "#9279FF",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -45,9 +46,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
+    <html lang="ru" className={`${interTight.variable} ${manrope.variable} h-full`}>
       <body className="relative min-h-full antialiased">
         <DecorBackground />
+        <ServiceWorkerRegister />
         {children}
       </body>
     </html>

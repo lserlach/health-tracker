@@ -16,7 +16,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="flex w-full flex-col gap-1.5">
         {label ? (
-          <label htmlFor={selectId} className="text-sm font-medium text-foreground">
+          <label htmlFor={selectId} className="text-sm font-semibold text-muted-foreground">
             {label}
           </label>
         ) : null}
@@ -24,9 +24,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={selectId}
           className={cn(
-            "min-h-12 w-full rounded-(--radius-button) border border-border bg-card px-4 text-base text-foreground",
+            "min-h-12 w-full rounded-(--radius-button) border-0 bg-background px-4 text-sm text-field-foreground",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-            error && "border-red-300",
+            error && "ring-2 ring-danger/30",
             className,
           )}
           {...props}
@@ -37,7 +37,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             </option>
           ))}
         </select>
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
       </div>
     );
   },

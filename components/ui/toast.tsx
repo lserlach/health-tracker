@@ -15,9 +15,11 @@ export function Toast({ message, variant = "success", onClose }: ToastProps) {
     <div className="fixed inset-x-4 top-4 z-[120] mx-auto max-w-lg">
       <div
         className={cn(
-          "flex items-center justify-between gap-3 rounded-(--radius-button) px-4 py-3 text-sm shadow-lg",
-          variant === "success" && "bg-success text-success-foreground",
-          variant === "error" && "bg-red-100 text-red-800",
+          "flex items-center justify-between gap-3 rounded-(--radius-button) border px-4 py-3 text-sm shadow-lg",
+          variant === "success" &&
+            "border-primary/20 bg-primary-soft text-primary shadow-primary/10",
+          variant === "error" &&
+            "border-danger/20 bg-danger/12 text-danger shadow-danger/10",
         )}
       >
         <span>{message}</span>

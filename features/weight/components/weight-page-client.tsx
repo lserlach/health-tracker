@@ -28,12 +28,19 @@ interface WeightPageClientProps {
   minDateKey: string;
 }
 
+function sortWeightLogs(logs: WeightLog[]) {
+  return [...logs].sort(
+    (a, b) => new Date(b.measured_at).getTime() - new Date(a.measured_at).getTime(),
+  );
+}
+
 export function WeightPageClient({ minDateKey }: WeightPageClientProps) {
   const [dateKey, setDateKey] = useState(toDateKey());
   const [logs, setLogs] = useState<WeightLog[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<WeightLog | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<WeightLog | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(
     null,
   );
@@ -87,15 +94,27 @@ export function WeightPageClient({ minDateKey }: WeightPageClientProps) {
       return;
     }
 
+    setIsSubmitting(true);
     const result = await saveWeightLogAction(parsed.data, editing?.id);
+    setIsSubmitting(false);
+
     if (result.error) {
       setToast({ message: result.error, variant: "error" });
       return;
     }
 
+    if (result.data) {
+      setLogs((current) =>
+        sortWeightLogs(
+          editing
+            ? current.map((log) => (log.id === editing.id ? result.data! : log))
+            : [result.data, ...current],
+        ),
+      );
+    }
+
     setToast({ message: editing ? "Запись обновлена" : "Запись добавлена", variant: "success" });
     setSheetOpen(false);
-    await load();
   }
 
   return (
@@ -152,8 +171,8 @@ export function WeightPageClient({ minDateKey }: WeightPageClientProps) {
         <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
           <Input label="Дата и время" type="datetime-local" {...form.register("measured_at")} />
           <Input label="Вес, кг" type="number" step="0.1" {...form.register("weight", { valueAsNumber: true })} />
-          <Button type="submit" className="w-full">
-            Сохранить
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Сохраняем..." : "Сохранить"}
           </Button>
         </form>
       </BottomSheet>
@@ -164,13 +183,18 @@ export function WeightPageClient({ minDateKey }: WeightPageClientProps) {
         onCancel={() => setDeleteTarget(null)}
         onConfirm={async () => {
           if (!deleteTarget) return;
-          const result = await deleteWeightLogAction(deleteTarget.id);
+
+          const deletedLog = deleteTarget;
+          setLogs((current) => current.filter((log) => log.id !== deletedLog.id));
+          setDeleteTarget(null);
+
+          const result = await deleteWeightLogAction(deletedLog.id);
           if (result.error) {
+            setLogs((current) => sortWeightLogs([deletedLog, ...current]));
             setToast({ message: result.error, variant: "error" });
             return;
           }
-          setDeleteTarget(null);
-          await load();
+
           setToast({ message: "Запись удалена", variant: "success" });
         }}
       />

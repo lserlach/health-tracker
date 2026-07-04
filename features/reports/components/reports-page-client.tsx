@@ -64,7 +64,7 @@ export function ReportsPageClient() {
 
       <Card className="space-y-4">
         <div>
-          <p className="font-medium text-foreground">PDF для врача</p>
+          <p className="font-heading font-medium text-foreground">PDF для врача</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Сахар, давление, вес и приём лекарств за выбранный период.
           </p>

@@ -26,6 +26,12 @@ interface GlucosePageClientProps {
   minDateKey: string;
 }
 
+function sortGlucoseLogs(logs: GlucoseLog[]) {
+  return [...logs].sort(
+    (a, b) => new Date(b.measured_at).getTime() - new Date(a.measured_at).getTime(),
+  );
+}
+
 export function GlucosePageClient({ minDateKey }: GlucosePageClientProps) {
   const [dateKey, setDateKey] = useState(toDateKey());
   const [logs, setLogs] = useState<GlucoseLog[]>([]);
@@ -74,26 +80,39 @@ export function GlucosePageClient({ minDateKey }: GlucosePageClientProps) {
       return;
     }
 
+    if (result.data) {
+      setLogs((current) =>
+        sortGlucoseLogs(
+          editingLog
+            ? current.map((log) => (log.id === editingLog.id ? result.data! : log))
+            : [result.data, ...current],
+        ),
+      );
+    }
+
     setToast({ message: editingLog ? "Запись обновлена" : "Запись добавлена", variant: "success" });
     setSheetOpen(false);
     setEditingLog(null);
-    await loadLogs();
   }
 
   async function handleDeleteConfirm() {
     if (!deleteTarget) return;
+
+    const deletedLog = deleteTarget;
     setIsDeleting(true);
-    const result = await deleteGlucoseLogAction(deleteTarget.id);
+    setLogs((current) => current.filter((log) => log.id !== deletedLog.id));
+    setDeleteTarget(null);
+
+    const result = await deleteGlucoseLogAction(deletedLog.id);
     setIsDeleting(false);
 
     if (result.error) {
+      setLogs((current) => sortGlucoseLogs([deletedLog, ...current]));
       setToast({ message: result.error, variant: "error" });
       return;
     }
 
     setToast({ message: "Запись удалена", variant: "success" });
-    setDeleteTarget(null);
-    await loadLogs();
   }
 
   function openCreateSheet() {
