@@ -1,7 +1,18 @@
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { LoginForm } from "@/features/auth/components/login-form";
+import { createClient } from "@/lib/supabase/server";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    redirect("/");
+  }
+
   return (
     <Suspense
       fallback={
