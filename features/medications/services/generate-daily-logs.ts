@@ -3,7 +3,7 @@ import type { Medication, MedicationLog } from "@/types/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface MedicationLogWithMedication extends MedicationLog {
-  medications: Pick<Medication, "name" | "dosage" | "icon" | "intake_relation">;
+  medications: Pick<Medication, "name" | "dosage" | "icon" | "icon_color" | "intake_relation">;
 }
 
 export function buildScheduledFor(date: Date, time: string) {
@@ -22,7 +22,7 @@ export async function fetchMedicationLogsForDay(
 
   const { data: logs, error: logsError } = await supabase
     .from("medication_logs")
-    .select("*, medications(name, dosage, icon, intake_relation)")
+    .select("*, medications(name, dosage, icon, icon_color, intake_relation)")
     .eq("user_id", userId)
     .gte("scheduled_for", start)
     .lte("scheduled_for", end)

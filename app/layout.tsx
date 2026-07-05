@@ -47,7 +47,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className={`${interTight.variable} ${manrope.variable} h-full bg-background`}>
-      <body className="min-h-full bg-background antialiased">
+      <body className="h-dvh overflow-hidden bg-background antialiased md:h-auto md:min-h-full md:overflow-visible">
         <ServiceWorkerRegister />
         <MobileViewport>{children}</MobileViewport>
       </body>

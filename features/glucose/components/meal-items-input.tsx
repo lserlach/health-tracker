@@ -18,21 +18,33 @@ const MAX_VISIBLE_ITEMS = 4;
 export function MealItemsInput({ value, onChange, onBlur, error }: MealItemsInputProps) {
   const listId = useId();
   const listRef = useRef<HTMLDivElement>(null);
+  const lastEmittedValueRef = useRef(value);
   const [items, setItems] = useState<string[]>(() => parseMealItems(value));
   const [itemIds, setItemIds] = useState<string[]>(() => [`${listId}-0`]);
   const isScrollable = items.length > MAX_VISIBLE_ITEMS;
 
   useEffect(() => {
+    if (value === lastEmittedValueRef.current) {
+      return;
+    }
+
+    lastEmittedValueRef.current = value;
     const parsed = parseMealItems(value);
     setItems(parsed);
     setItemIds(parsed.map((_, index) => `${listId}-${index}`));
   }, [value, listId]);
 
+  function emitChange(nextItems: string[]) {
+    const serialized = serializeMealItems(nextItems);
+    lastEmittedValueRef.current = serialized;
+    onChange(serialized);
+  }
+
   function handleItemChange(index: number, nextValue: string) {
     const nextItems = [...items];
     nextItems[index] = nextValue;
     setItems(nextItems);
-    onChange(serializeMealItems(nextItems));
+    emitChange(nextItems);
   }
 
   function handleAddItem() {
@@ -54,7 +66,7 @@ export function MealItemsInput({ value, onChange, onBlur, error }: MealItemsInpu
     const nextItems = items.filter((_, itemIndex) => itemIndex !== index);
     setItems(nextItems);
     setItemIds((current) => current.filter((_, itemIndex) => itemIndex !== index));
-    onChange(serializeMealItems(nextItems));
+    emitChange(nextItems);
   }
 
   return (

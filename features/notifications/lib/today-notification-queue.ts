@@ -112,7 +112,7 @@ export function buildTodayNotificationQueue({
       scheduledAt: meal.remind_at,
       timeLabel: formatTimeLabel(scheduledAt),
       title: `Измерить сахар после еды: ${meal.meal_text}`,
-      href: "/",
+      href: "/glucose",
     });
   }
 

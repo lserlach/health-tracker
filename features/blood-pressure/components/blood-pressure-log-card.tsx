@@ -1,4 +1,5 @@
 import { isElevatedBloodPressure } from "@/features/blood-pressure/lib/validation";
+import { PulseIndicator } from "@/features/blood-pressure/components/pulse-indicator";
 import { cn } from "@/lib/utils/cn";
 import type { BloodPressureLog } from "@/types/database.types";
 import { Badge } from "@/components/ui/badge";
@@ -37,12 +38,13 @@ export function BloodPressureLogCard({
               {isElevated ? "Повышено" : "В норме"}
             </Badge>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {timestampLabel}
-            {log.pulse ? ` · пульс ${log.pulse}` : ""}
-          </p>
+          {log.pulse ? <PulseIndicator pulse={log.pulse} className="mt-2" /> : null}
         </div>
-        <RecordActionButtons onEdit={onEdit} onDelete={onDelete} />
+
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <RecordActionButtons onEdit={onEdit} onDelete={onDelete} />
+          <span className="text-sm text-muted-foreground">{timestampLabel}</span>
+        </div>
       </div>
     </Card>
   );

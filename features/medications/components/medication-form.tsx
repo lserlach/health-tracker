@@ -1,18 +1,21 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import {
   defaultScheduleTimes,
-  ICON_OPTIONS,
   INTAKE_RELATION_OPTIONS,
   medicationFormSchema,
   type MedicationFormValues,
 } from "@/features/medications/lib/validation";
+import { MedicationIconPicker } from "@/features/medications/components/medication-icon-picker";
+import { getMedicationColorValue } from "@/features/medications/lib/medication-colors";
+import type { MedicationIconValue } from "@/features/medications/lib/medication-icon-values";
 import type { Medication } from "@/types/database.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 interface MedicationFormProps {
   initialData?: Medication;
@@ -26,7 +29,8 @@ function getDefaultValues(initialData?: Medication): MedicationFormValues {
     return {
       name: initialData.name,
       dosage: initialData.dosage,
-      icon: (initialData.icon as MedicationFormValues["icon"]) ?? "pill",
+      icon: (initialData.icon as MedicationIconValue) ?? "pill",
+      icon_color: getMedicationColorValue(initialData.icon_color),
       intake_relation: initialData.intake_relation,
       times_per_day: initialData.times_per_day,
       schedule_times: scheduleTimes,
@@ -38,6 +42,7 @@ function getDefaultValues(initialData?: Medication): MedicationFormValues {
     name: "",
     dosage: "",
     icon: "pill",
+    icon_color: "purple",
     intake_relation: "any",
     times_per_day: 1,
     schedule_times: defaultScheduleTimes(1),
@@ -52,6 +57,7 @@ export function MedicationForm({ initialData, onSubmit, onCancel }: MedicationFo
     watch,
     reset,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<MedicationFormValues>({
     defaultValues: getDefaultValues(initialData),
@@ -93,11 +99,25 @@ export function MedicationForm({ initialData, onSubmit, onCancel }: MedicationFo
         {...register("dosage")}
       />
 
-      <Select
-        label="Иконка"
-        options={ICON_OPTIONS.map((item) => ({ value: item.value, label: item.label }))}
-        error={errors.icon?.message}
-        {...register("icon")}
+      <Controller
+        name="icon"
+        control={control}
+        render={({ field: iconField }) => (
+          <Controller
+            name="icon_color"
+            control={control}
+            render={({ field: colorField }) => (
+              <MedicationIconPicker
+                icon={iconField.value}
+                color={colorField.value}
+                onIconChange={iconField.onChange}
+                onColorChange={colorField.onChange}
+                iconError={errors.icon?.message}
+                colorError={errors.icon_color?.message}
+              />
+            )}
+          />
+        )}
       />
 
       <Select
@@ -117,11 +137,10 @@ export function MedicationForm({ initialData, onSubmit, onCancel }: MedicationFo
       />
 
       <div className="space-y-3">
-        <p className="text-sm font-medium text-foreground">Время приёма</p>
         {Array.from({ length: timesPerDay }, (_, index) => (
           <Input
             key={`schedule-${index}`}
-            label={`Приём ${index + 1}`}
+            label={`Время приёма ${index + 1}`}
             type="time"
             error={errors.schedule_times?.[index]?.message}
             {...register(`schedule_times.${index}` as const)}
@@ -129,10 +148,18 @@ export function MedicationForm({ initialData, onSubmit, onCancel }: MedicationFo
         ))}
       </div>
 
-      <label className="flex items-center gap-3 text-sm">
-        <input type="checkbox" className="h-4 w-4 rounded border-border" {...register("is_active")} />
-        Активно в расписании
-      </label>
+      <Controller
+        name="is_active"
+        control={control}
+        render={({ field }) => (
+          <Switch
+            checked={field.value}
+            onCheckedChange={field.onChange}
+            label="Активно в расписании"
+            className="items-center"
+          />
+        )}
+      />
 
       <div className="flex gap-3 pt-2">
         <Button type="button" variant="secondary" className="flex-1" onClick={onCancel}>

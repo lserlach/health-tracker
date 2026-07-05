@@ -4,29 +4,34 @@ import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   glucoseFormSchema,
+  isFastingTakenForMeasuredAt,
   normalizeFormMeasurementType,
   type GlucoseFormValues,
 } from "@/features/glucose/lib/validation";
 import { MealItemsInput } from "@/features/glucose/components/meal-items-input";
 import { MeasurementTypeTabs } from "@/features/glucose/components/measurement-type-tabs";
 import { toDatetimeLocalValue } from "@/lib/dates/format";
-import type { GlucoseLog } from "@/types/database.types";
+import type { GlucoseLog, MealLog } from "@/types/database.types";
 import { Button } from "@/components/ui/button";
 import { DatetimeHeaderPicker } from "@/components/ui/datetime-header-picker";
 import { Input } from "@/components/ui/input";
 
 interface GlucoseFormProps {
   initialData?: GlucoseLog;
+  pendingMeal?: MealLog;
   defaultMeasurementType?: GlucoseFormValues["measurement_type"];
   defaultMeasuredAt?: string;
+  dayLogs?: GlucoseLog[];
   onSubmit: (values: GlucoseFormValues) => Promise<void>;
   onCancel: () => void;
 }
 
 function getDefaultValues(
   initialData?: GlucoseLog,
+  pendingMeal?: MealLog,
   defaultMeasurementType?: GlucoseFormValues["measurement_type"],
   defaultMeasuredAt?: string,
+  dayLogs?: GlucoseLog[],
 ): GlucoseFormValues {
   if (initialData) {
     return {
@@ -37,18 +42,36 @@ function getDefaultValues(
     };
   }
 
+  if (pendingMeal) {
+    const remindAt = new Date(pendingMeal.remind_at);
+    const now = new Date();
+
+    return {
+      value: Number.NaN,
+      measured_at: toDatetimeLocalValue(now > remindAt ? now : remindAt),
+      measurement_type: "after_meal",
+      meal_text: pendingMeal.meal_text,
+    };
+  }
+
+  const measuredAt = defaultMeasuredAt ?? toDatetimeLocalValue();
+  const fastingTaken = isFastingTakenForMeasuredAt(dayLogs ?? [], measuredAt);
+  const preferredType = defaultMeasurementType ?? "fasting";
+
   return {
     value: Number.NaN,
-    measured_at: defaultMeasuredAt ?? toDatetimeLocalValue(),
-    measurement_type: defaultMeasurementType ?? "fasting",
+    measured_at: measuredAt,
+    measurement_type: fastingTaken && preferredType === "fasting" ? "after_meal" : preferredType,
     meal_text: "",
   };
 }
 
 export function GlucoseForm({
   initialData,
+  pendingMeal,
   defaultMeasurementType,
   defaultMeasuredAt,
+  dayLogs,
   onSubmit,
   onCancel,
 }: GlucoseFormProps) {
@@ -56,17 +79,40 @@ export function GlucoseForm({
     handleSubmit,
     watch,
     reset,
+    setValue,
     control,
     formState: { errors, isSubmitting },
   } = useForm<GlucoseFormValues>({
-    defaultValues: getDefaultValues(initialData, defaultMeasurementType, defaultMeasuredAt),
+    defaultValues: getDefaultValues(
+      initialData,
+      pendingMeal,
+      defaultMeasurementType,
+      defaultMeasuredAt,
+      dayLogs,
+    ),
   });
 
   useEffect(() => {
-    reset(getDefaultValues(initialData, defaultMeasurementType, defaultMeasuredAt));
-  }, [initialData, defaultMeasurementType, defaultMeasuredAt, reset]);
+    reset(
+      getDefaultValues(
+        initialData,
+        pendingMeal,
+        defaultMeasurementType,
+        defaultMeasuredAt,
+        dayLogs,
+      ),
+    );
+  }, [initialData, pendingMeal, defaultMeasurementType, defaultMeasuredAt, dayLogs, reset]);
 
   const measurementType = watch("measurement_type");
+  const measuredAt = watch("measured_at");
+  const fastingDisabled = isFastingTakenForMeasuredAt(dayLogs ?? [], measuredAt, initialData?.id);
+
+  useEffect(() => {
+    if (fastingDisabled && measurementType === "fasting") {
+      setValue("measurement_type", "after_meal");
+    }
+  }, [fastingDisabled, measurementType, setValue]);
 
   async function handleFormSubmit(values: GlucoseFormValues) {
     const parsed = glucoseFormSchema.safeParse(values);
@@ -80,7 +126,7 @@ export function GlucoseForm({
     <form className="space-y-4" onSubmit={handleSubmit(handleFormSubmit)}>
       <div className="mb-2 pr-12">
         <h2 className="font-heading text-xl font-semibold leading-tight text-foreground">
-          {initialData ? "Редактировать" : "Добавить сахар"}
+          {initialData ? "Редактировать" : pendingMeal ? "Измерить сахар" : "Добавить сахар"}
         </h2>
         <Controller
           name="measured_at"
@@ -96,17 +142,20 @@ export function GlucoseForm({
         />
       </div>
 
-      <Controller
-        name="measurement_type"
-        control={control}
-        render={({ field }) => (
-          <MeasurementTypeTabs
-            value={field.value}
-            onChange={field.onChange}
-            error={errors.measurement_type?.message}
-          />
-        )}
-      />
+      {pendingMeal ? null : (
+        <Controller
+          name="measurement_type"
+          control={control}
+          render={({ field }) => (
+            <MeasurementTypeTabs
+              value={field.value}
+              onChange={field.onChange}
+              error={errors.measurement_type?.message}
+              fastingDisabled={fastingDisabled}
+            />
+          )}
+        />
+      )}
 
       <Controller
         name="value"

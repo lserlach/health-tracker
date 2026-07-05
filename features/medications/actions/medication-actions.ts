@@ -15,6 +15,7 @@ function mapForm(values: MedicationFormValues, userId: string) {
     name: values.name.trim(),
     dosage: values.dosage.trim(),
     icon: values.icon,
+    icon_color: values.icon_color,
     intake_relation: values.intake_relation,
     times_per_day: values.times_per_day,
     schedule_times: values.schedule_times,

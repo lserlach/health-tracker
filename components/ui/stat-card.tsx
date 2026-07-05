@@ -33,7 +33,7 @@ export function StatCard({ label, value, hint, hintVariant, icon, className }: S
 
   return (
     <Card className={cn("flex flex-col gap-2 border-0 shadow-none", className)}>
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">{label}</p>
         <div className="flex shrink-0 items-center gap-2">
           {statusBadge}
@@ -46,7 +46,7 @@ export function StatCard({ label, value, hint, hintVariant, icon, className }: S
       </div>
       <p
         className={cn(
-          "font-heading text-2xl font-semibold leading-none",
+          "font-heading text-2xl font-semibold leading-none text-right",
           hintVariant ? valueColorByVariant[hintVariant] : "text-foreground",
         )}
       >

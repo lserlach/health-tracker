@@ -62,7 +62,7 @@ export function ReportsPageClient() {
     <PageContainer>
       <AppHeader title="Отчёты" />
 
-      <Card className="space-y-4">
+      <Card flat className="space-y-4">
         <div>
           <p className="font-heading font-medium text-foreground">PDF для врача</p>
           <p className="mt-1 text-sm text-muted-foreground">

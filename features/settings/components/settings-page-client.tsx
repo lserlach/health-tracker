@@ -257,30 +257,30 @@ export function SettingsPageClient({
         })}
       >
         {activeTab === "profile" ? (
-          <Card className="space-y-4">
-              <h2 className="text-base font-medium text-foreground">Профиль</h2>
-              <Input label="Имя (для отчёта)" {...register("display_name")} />
-              <Input
-                label="Стартовый вес, кг"
-                type="number"
-                step="0.1"
-                {...register("start_weight")}
-              />
-              <Input
-                label="Первый день последней менструации"
-                type="date"
-                {...register("last_menstrual_date")}
-              />
-              <Input
-                label="Начало ведения дневника"
-                type="date"
-                {...register("tracking_start_date")}
+          <Card flat className="space-y-4">
+            <h2 className="text-base font-medium text-foreground">Профиль</h2>
+            <Input label="Имя (для отчёта)" {...register("display_name")} />
+            <Input
+              label="Стартовый вес, кг"
+              type="number"
+              step="0.1"
+              {...register("start_weight")}
+            />
+            <Input
+              label="Первый день последней менструации"
+              type="date"
+              {...register("last_menstrual_date")}
+            />
+            <Input
+              label="Начало ведения дневника"
+              type="date"
+              {...register("tracking_start_date")}
             />
           </Card>
         ) : null}
 
         {activeTab === "limits" ? (
-          <Card className="space-y-4">
+          <Card flat className="space-y-4">
             <h2 className="text-base font-medium text-foreground">Лимиты сахара, ммоль/л</h2>
             <Input
               label="Натощак"
@@ -298,7 +298,7 @@ export function SettingsPageClient({
         ) : null}
 
         {activeTab === "notifications" ? (
-          <Card className="space-y-5 border-0 shadow-none">
+          <Card flat className="space-y-5">
             <div>
               <h2 className="text-base font-medium text-foreground">Уведомления</h2>
               <p className="mt-1 text-sm text-muted-foreground">

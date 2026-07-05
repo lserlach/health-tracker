@@ -68,6 +68,7 @@ export interface Medication {
   name: string;
   dosage: string;
   icon: string;
+  icon_color: string;
   intake_relation: IntakeRelation;
   times_per_day: number;
   schedule_times: string[];

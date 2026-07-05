@@ -1,5 +1,42 @@
 import { z } from "zod";
-import type { GlucoseMeasurementType } from "@/types/database.types";
+import { toDateKey } from "@/lib/dates/day";
+import { getDatetimeLocalDatePart } from "@/lib/dates/format";
+import type { GlucoseLog, GlucoseMeasurementType } from "@/types/database.types";
+
+export const FASTING_ONCE_PER_DAY_ERROR = "Натощак можно записать только один раз в день";
+
+type FastingLogRef = Pick<GlucoseLog, "id" | "measurement_type" | "measured_at">;
+
+export function findFastingLogForDay(
+  logs: FastingLogRef[],
+  dateKey: string,
+  excludeLogId?: string,
+) {
+  return (
+    logs.find(
+      (log) =>
+        log.measurement_type === "fasting" &&
+        log.id !== excludeLogId &&
+        toDateKey(new Date(log.measured_at)) === dateKey,
+    ) ?? null
+  );
+}
+
+export function isFastingTakenForDay(
+  logs: FastingLogRef[],
+  dateKey: string,
+  excludeLogId?: string,
+) {
+  return findFastingLogForDay(logs, dateKey, excludeLogId) !== null;
+}
+
+export function isFastingTakenForMeasuredAt(
+  logs: FastingLogRef[],
+  measuredAt: string,
+  excludeLogId?: string,
+) {
+  return isFastingTakenForDay(logs, getDatetimeLocalDatePart(measuredAt), excludeLogId);
+}
 
 export function parseMealItems(value: string) {
   const items = value

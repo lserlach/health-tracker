@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Cookie, ForkKnife, Heartbeat, Pill, Scales } from "@phosphor-icons/react";
 import { saveBloodPressureLogAction } from "@/features/blood-pressure/actions/blood-pressure-actions";
@@ -15,7 +15,9 @@ import { saveMealLogAction } from "@/features/meals/actions/meal-actions";
 import { MealForm } from "@/features/meals/components/meal-form";
 import type { MealFormValues } from "@/features/meals/lib/validation";
 import { updateMedicationLogStatusAction } from "@/features/medications/actions/medication-log-actions";
+import { MedicationChecklist } from "@/features/medications/components/medication-checklist";
 import type { MedicationLogWithMedication } from "@/features/medications/services/generate-daily-logs";
+import type { GlucoseLog } from "@/types/database.types";
 import { saveWeightLogAction } from "@/features/weight/actions/weight-actions";
 import {
   weightFormSchema,
@@ -26,7 +28,7 @@ import { Button } from "@/components/ui/button";
 import { DatetimePickerField } from "@/components/ui/datetime-picker-field";
 import { Input } from "@/components/ui/input";
 import { Toast } from "@/components/ui/toast";
-import { formatDateTime, toDatetimeLocalValue } from "@/lib/dates/format";
+import { toDatetimeLocalValue } from "@/lib/dates/format";
 import { cn } from "@/lib/utils/cn";
 import { Controller, useForm } from "react-hook-form";
 
@@ -34,30 +36,25 @@ type SheetType = "glucose" | "meal" | "medication" | "blood_pressure" | "weight"
 
 interface HomeQuickActionsProps {
   medicationLogs: MedicationLogWithMedication[];
+  todayGlucoseLogs: GlucoseLog[];
 }
 
 const actionButtonClassName = cn(
   "flex h-auto min-h-[6rem] w-full flex-col items-center justify-center gap-1.5 rounded-(--radius-button) bg-primary-soft/45 px-3 py-4 text-xs font-normal text-primary/70 transition-colors hover:bg-primary-soft/65",
 );
 
-export function HomeQuickActions({ medicationLogs }: HomeQuickActionsProps) {
+export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuickActionsProps) {
   const router = useRouter();
   const [activeSheet, setActiveSheet] = useState<SheetType>(null);
+  const [localMedicationLogs, setLocalMedicationLogs] = useState(medicationLogs);
   const [pendingMedId, setPendingMedId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(
     null,
   );
 
-  const pendingMedications = useMemo(
-    () =>
-      [...medicationLogs]
-        .filter((log) => log.status === "pending")
-        .sort(
-          (a, b) =>
-            new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime(),
-        ),
-    [medicationLogs],
-  );
+  useEffect(() => {
+    setLocalMedicationLogs(medicationLogs);
+  }, [medicationLogs]);
 
   const weightForm = useForm<WeightFormValues>({
     defaultValues: {
@@ -151,18 +148,43 @@ export function HomeQuickActions({ medicationLogs }: HomeQuickActionsProps) {
     refreshHome();
   }
 
-  async function markMedicationTaken(log: MedicationLogWithMedication) {
+  async function setMedicationStatus(
+    log: MedicationLogWithMedication,
+    status: MedicationLogWithMedication["status"],
+  ) {
+    const previousLogs = localMedicationLogs;
+    const takenAt = status === "taken" ? log.scheduled_for : null;
+
     setPendingMedId(log.id);
-    const result = await updateMedicationLogStatusAction(log.id, "taken", log.scheduled_for);
+    setLocalMedicationLogs((current) =>
+      current.map((item) =>
+        item.id === log.id ? { ...item, status, taken_at: takenAt } : item,
+      ),
+    );
+
+    const result = await updateMedicationLogStatusAction(
+      log.id,
+      status,
+      takenAt ?? undefined,
+    );
+
     setPendingMedId(null);
 
     if (result.error) {
+      setLocalMedicationLogs(previousLogs);
       setToast({ message: result.error, variant: "error" });
       return;
     }
 
-    setToast({ message: `${log.medications.name} отмечено`, variant: "success" });
     refreshHome();
+  }
+
+  function toggleMedicationTaken(log: MedicationLogWithMedication) {
+    void setMedicationStatus(log, log.status === "taken" ? "pending" : "taken");
+  }
+
+  function toggleMedicationSkipped(log: MedicationLogWithMedication) {
+    void setMedicationStatus(log, log.status === "skipped" ? "pending" : "skipped");
   }
 
   return (
@@ -208,6 +230,7 @@ export function HomeQuickActions({ medicationLogs }: HomeQuickActionsProps) {
       <BottomSheet open={activeSheet === "glucose"} title="Добавить сахар" onClose={closeSheet}>
         <GlucoseForm
           defaultMeasurementType="fasting"
+          dayLogs={todayGlucoseLogs}
           onSubmit={handleGlucoseSubmit}
           onCancel={closeSheet}
         />
@@ -303,29 +326,16 @@ export function HomeQuickActions({ medicationLogs }: HomeQuickActionsProps) {
       </BottomSheet>
 
       <BottomSheet open={activeSheet === "medication"} title="Отметить лекарство" onClose={closeSheet}>
-        {pendingMedications.length === 0 ? (
-          <p className="text-sm text-muted-foreground">На сегодня все лекарства уже отмечены.</p>
+        {localMedicationLogs.length === 0 ? (
+          <p className="text-sm text-muted-foreground">На сегодня нет лекарств в расписании.</p>
         ) : (
-          <div className="space-y-3">
-            {pendingMedications.map((log) => (
-              <div
-                key={log.id}
-                className="rounded-(--radius-button) border border-border bg-card p-3"
-              >
-                <p className="font-medium">{log.medications.name}</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {log.medications.dosage} · {formatDateTime(log.scheduled_for)}
-                </p>
-                <Button
-                  className="mt-3 w-full"
-                  disabled={pendingMedId === log.id}
-                  onClick={() => void markMedicationTaken(log)}
-                >
-                  {pendingMedId === log.id ? "Сохраняем..." : "Отметить принятым"}
-                </Button>
-              </div>
-            ))}
-          </div>
+          <MedicationChecklist
+            logs={localMedicationLogs}
+            pendingLogId={pendingMedId}
+            onToggleTaken={toggleMedicationTaken}
+            onToggleSkipped={toggleMedicationSkipped}
+            className="border-0 bg-transparent p-0 shadow-none"
+          />
         )}
       </BottomSheet>
 

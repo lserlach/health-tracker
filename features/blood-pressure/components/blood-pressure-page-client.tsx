@@ -9,12 +9,13 @@ import {
   getBloodPressureLogsForDayAction,
   saveBloodPressureLogAction,
 } from "@/features/blood-pressure/actions/blood-pressure-actions";
+import { BloodPressureAllLogsList } from "@/features/blood-pressure/components/blood-pressure-all-logs-list";
 import { BloodPressureLogCard } from "@/features/blood-pressure/components/blood-pressure-log-card";
 import {
   bloodPressureFormSchema,
   type BloodPressureFormValues,
 } from "@/features/blood-pressure/lib/validation";
-import { formatDateTime, formatTime, toDatetimeLocalValue } from "@/lib/dates/format";
+import { formatTime, toDatetimeLocalValue } from "@/lib/dates/format";
 import { getDefaultMeasuredAt, parseDateKey, toDateKey } from "@/lib/dates/day";
 import { cn } from "@/lib/utils/cn";
 import type { BloodPressureLog } from "@/types/database.types";
@@ -175,27 +176,25 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
     setSheetOpen(false);
   }
 
-  const visibleLogs = viewMode === "all" ? allLogs : logs;
+  const visibleLogs = viewMode === "day" ? logs : allLogs;
 
   return (
     <PageContainer>
       <AppHeader
-        title={
-          <span className="flex items-center gap-2">
-            <span>Давление</span>
-            <button
-              type="button"
-              aria-label={viewMode === "all" ? "Показать по дням" : "Показать все измерения"}
-              aria-pressed={viewMode === "all"}
-              className={cn(
-                headerIconButtonClassName,
-                viewMode === "all" && "bg-primary-soft text-primary",
-              )}
-              onClick={() => setViewMode((current) => (current === "day" ? "all" : "day"))}
-            >
-              <ListBullets size={20} weight={viewMode === "all" ? "fill" : "regular"} />
-            </button>
-          </span>
+        title="Давление"
+        actions={
+          <button
+            type="button"
+            aria-label={viewMode === "all" ? "Показать по дням" : "Показать все измерения"}
+            aria-pressed={viewMode === "all"}
+            className={cn(
+              headerIconButtonClassName,
+              viewMode === "all" && "bg-primary-soft text-primary",
+            )}
+            onClick={() => setViewMode((current) => (current === "day" ? "all" : "day"))}
+          >
+            <ListBullets size={20} weight={viewMode === "all" ? "fill" : "regular"} />
+          </button>
         }
       />
 
@@ -213,13 +212,19 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
           }
           action={<Button onClick={() => openSheet()}>Добавить</Button>}
         />
+      ) : viewMode === "all" ? (
+        <BloodPressureAllLogsList
+          logs={allLogs}
+          onEdit={(log) => openSheet(log)}
+          onDelete={(log) => setDeleteTarget(log)}
+        />
       ) : (
         <div className="space-y-3">
-          {visibleLogs.map((log) => (
+          {logs.map((log) => (
             <BloodPressureLogCard
               key={log.id}
               log={log}
-              timestampLabel={viewMode === "all" ? formatDateTime(log.measured_at) : formatTime(log.measured_at)}
+              timestampLabel={formatTime(log.measured_at)}
               onEdit={() => openSheet(log)}
               onDelete={() => setDeleteTarget(log)}
             />

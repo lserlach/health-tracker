@@ -18,6 +18,7 @@ import type { BloodPressureLog, GlucoseLog } from "@/types/database.types";
 
 interface HomePageClientProps {
   lastGlucose: GlucoseLog | null;
+  todayGlucoseLogs: GlucoseLog[];
   lastBp: BloodPressureLog | null;
   medicationLogs: MedicationLogWithMedication[];
   dailyProgress: DailyProgressStatus;
@@ -54,6 +55,7 @@ function formatDueLabel(daysUntilDue: number | null) {
 
 export function HomePageClient({
   lastGlucose,
+  todayGlucoseLogs,
   lastBp,
   medicationLogs,
   dailyProgress,
@@ -96,7 +98,7 @@ export function HomePageClient({
 
       <DailyProgressTracker status={dailyProgress} />
 
-      <HomeQuickActions medicationLogs={medicationLogs} />
+      <HomeQuickActions medicationLogs={medicationLogs} todayGlucoseLogs={todayGlucoseLogs} />
 
       <section className="mb-6">
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">Последние показатели</h2>

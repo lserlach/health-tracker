@@ -9,11 +9,34 @@ jobs:
   trigger:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger production reminder cron
+      - name: Validate cron secret is configured
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          response=$(curl --fail-with-body -sS \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            -w "\nHTTP_STATUS:%{http_code}" \
-            "https://lurea.vercel.app/api/cron/reminders")
-          echo "$response"
-          echo "$response" | grep -q "HTTP_STATUS:200" || exit 1
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::GitHub secret CRON_SECRET is empty. Set it in repo Settings → Secrets → Actions to match Vercel env CRON_SECRET."
+            exit 1
+          fi
+
+      - name: Trigger production reminder cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp)"
+          http_code="$(curl -sS \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -o "$tmp" \
+            -w "%{http_code}" \
+            "https://lurea.vercel.app/api/cron/reminders")"
+          body="$(cat "$tmp")"
+          rm -f "$tmp"
+          echo "Response ($http_code): $body"
+          if [ "$http_code" = "401" ]; then
+            echo "::error::Unauthorized (401). GitHub CRON_SECRET does not match Vercel CRON_SECRET."
+            exit 1
+          fi
+          if [ "$http_code" != "200" ]; then
+            echo "::error::Reminder cron failed with HTTP $http_code"
+            exit 1
+          fi

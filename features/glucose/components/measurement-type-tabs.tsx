@@ -10,6 +10,7 @@ interface MeasurementTypeTabsProps {
   value: FormMeasurementType;
   onChange: (value: FormMeasurementType) => void;
   error?: string;
+  fastingDisabled?: boolean;
 }
 
 const tabs: { id: FormMeasurementType; label: string }[] = [
@@ -28,7 +29,12 @@ function TabIcon({ type }: { type: FormMeasurementType }) {
   }
 }
 
-export function MeasurementTypeTabs({ value, onChange, error }: MeasurementTypeTabsProps) {
+export function MeasurementTypeTabs({
+  value,
+  onChange,
+  error,
+  fastingDisabled = false,
+}: MeasurementTypeTabsProps) {
   return (
     <div className="flex w-full flex-col gap-1.5">
       <div
@@ -38,6 +44,7 @@ export function MeasurementTypeTabs({ value, onChange, error }: MeasurementTypeT
       >
         {tabs.map((tab) => {
           const isActive = value === tab.id;
+          const isDisabled = tab.id === "fasting" && fastingDisabled;
 
           return (
             <button
@@ -45,13 +52,21 @@ export function MeasurementTypeTabs({ value, onChange, error }: MeasurementTypeT
               type="button"
               role="tab"
               aria-selected={isActive}
+              aria-disabled={isDisabled}
+              disabled={isDisabled}
+              title={isDisabled ? "Натощак уже записан за этот день" : undefined}
               className={cn(
                 "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium leading-tight transition-colors",
                 isActive
                   ? "bg-primary text-white shadow-sm shadow-primary/15"
                   : "bg-transparent text-muted-foreground hover:text-foreground",
+                isDisabled && "cursor-not-allowed opacity-45 hover:text-muted-foreground",
               )}
-              onClick={() => onChange(tab.id)}
+              onClick={() => {
+                if (!isDisabled) {
+                  onChange(tab.id);
+                }
+              }}
             >
               <TabIcon type={tab.id} />
               {tab.label}

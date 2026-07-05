@@ -13,9 +13,9 @@ export function AppShellClient({ children }: AppShellClientProps) {
 
   return (
     <BottomActionSlotRefContext.Provider value={bottomActionSlotRef}>
-      <div className="flex h-full min-h-dvh flex-col bg-background md:min-h-0">
-        <div className="flex flex-1 flex-col overflow-y-auto overscroll-y-contain">
-          <main className="flex min-h-full flex-1 flex-col">{children}</main>
+      <div className="flex h-full min-h-0 flex-col bg-background">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain">
+          <main className="flex min-h-0 flex-1 flex-col">{children}</main>
         </div>
         <div
           ref={bottomActionSlotRef}

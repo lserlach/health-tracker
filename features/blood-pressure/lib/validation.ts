@@ -25,6 +25,11 @@ export function isElevatedBloodPressure(systolic: number, diastolic: number) {
   return systolic > 140 || diastolic > 90;
 }
 
+export function isElevatedPulse(pulse: number | null | undefined) {
+  if (pulse == null) return false;
+  return pulse > 100 || pulse < 60;
+}
+
 export function parsePulse(value?: string) {
   if (!value?.trim()) return null;
   const parsed = Number(value);

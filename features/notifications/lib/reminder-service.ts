@@ -275,7 +275,7 @@ export async function runReminderCron() {
       key: reminderKey,
       title: "Измерь сахар",
       body: `Пора измерить сахар после еды: ${meal.meal_text}`,
-      url: "/",
+      url: "/glucose",
     });
 
     await supabase.from("meal_logs").update({ reminder_sent: true }).eq("id", meal.id);

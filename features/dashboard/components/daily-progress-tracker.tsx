@@ -22,10 +22,10 @@ const trackerItems: {
   icon: Icon;
 }[] = [
   { key: "glucose", label: "Сахар", icon: Cookie },
-  { key: "meal", label: "Еда", icon: ForkKnife },
-  { key: "medication", label: "Лекарство", icon: Pill },
   { key: "bloodPressure", label: "Давление", icon: Heartbeat },
+  { key: "medication", label: "Лекарства", icon: Pill },
   { key: "weight", label: "Вес", icon: Scales },
+  { key: "meal", label: "Еда", icon: ForkKnife },
 ];
 
 export function DailyProgressTracker({ status, className }: DailyProgressTrackerProps) {
@@ -40,7 +40,7 @@ export function DailyProgressTracker({ status, className }: DailyProgressTracker
         </p>
       </div>
 
-      <div className="flex flex-row-reverse items-center gap-2" aria-label="Прогресс заполнения за сегодня">
+      <div className="flex items-center gap-2" aria-label="Прогресс заполнения за сегодня">
         {trackerItems.map((item) => {
           const isComplete = status[item.key];
           const IconComponent = item.icon;

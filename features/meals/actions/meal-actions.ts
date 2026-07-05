@@ -34,6 +34,7 @@ export async function saveMealLogAction(values: MealFormValues) {
   if (error) return { error: formatSupabaseError(error) };
 
   revalidatePath("/");
+  revalidatePath("/glucose");
   return { data: data as MealLog };
 }
 

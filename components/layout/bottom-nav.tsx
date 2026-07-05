@@ -14,9 +14,9 @@ import { cn } from "@/lib/utils/cn";
 const navItems = [
   { href: "/", label: "Главная", icon: House },
   { href: "/glucose", label: "Сахар", icon: Cookie },
+  { href: "/blood-pressure", label: "Давление", icon: Heartbeat },
   { href: "/medications", label: "Лекарства", icon: Pill },
   { href: "/weight", label: "Вес", icon: Scales },
-  { href: "/blood-pressure", label: "Давление", icon: Heartbeat },
 ] as const;
 
 export function BottomNav() {
