@@ -11,10 +11,7 @@ function mapFormToInsert(values: GlucoseFormValues, userId: string) {
     measurement_type: values.measurement_type,
     meal_text:
       values.measurement_type === "after_meal" ? values.meal_text?.trim() || null : null,
-    minutes_after_meal:
-      values.measurement_type === "after_meal"
-        ? values.minutes_after_meal ?? 60
-        : null,
+    minutes_after_meal: null,
   };
 }
 

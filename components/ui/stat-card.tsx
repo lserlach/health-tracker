@@ -46,7 +46,7 @@ export function StatCard({ label, value, hint, hintVariant, icon, className }: S
       </div>
       <p
         className={cn(
-          "font-heading text-2xl font-semibold",
+          "font-heading text-2xl font-semibold leading-none",
           hintVariant ? valueColorByVariant[hintVariant] : "text-foreground",
         )}
       >

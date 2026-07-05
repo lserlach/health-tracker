@@ -115,6 +115,7 @@ function appendDailyReminders(
     type: string;
     times: string[];
     fallbackTime: string;
+    title: string;
     body: string;
     dateKey: string;
     hour: number;
@@ -134,7 +135,7 @@ function appendDailyReminders(
 
     reminders.push({
       key: buildDailyReminderKey(input.type, input.dateKey, time),
-      title: "Дневник здоровья",
+      title: input.title,
       body: input.body,
       url: "/",
     });
@@ -166,7 +167,8 @@ export async function runReminderCron() {
       type: "glucose",
       times: settings.notify_glucose_times,
       fallbackTime: settings.notify_glucose_time,
-      body: "Отметьте сахар",
+      title: "Измерь сахар",
+      body: "Пора измерить сахар",
       dateKey: local.dateKey,
       hour: local.hour,
       minute: local.minute,
@@ -177,7 +179,8 @@ export async function runReminderCron() {
       type: "weight",
       times: settings.notify_weight_times,
       fallbackTime: settings.notify_weight_time,
-      body: "Отметьте вес",
+      title: "Измерь вес",
+      body: "Пора измерить вес",
       dateKey: local.dateKey,
       hour: local.hour,
       minute: local.minute,
@@ -188,7 +191,8 @@ export async function runReminderCron() {
       type: "blood_pressure",
       times: settings.notify_blood_pressure_times,
       fallbackTime: settings.notify_blood_pressure_time,
-      body: "Отметьте давление",
+      title: "Измерь давление",
+      body: "Пора измерить давление",
       dateKey: local.dateKey,
       hour: local.hour,
       minute: local.minute,
@@ -220,8 +224,8 @@ export async function runReminderCron() {
 
           reminders.push({
             key: buildMedicationReminderKey(log.id, slot),
-            title: "Дневник здоровья",
-            body: `Отметьте приём: ${medicationName}`,
+            title: "Отметь приём",
+            body: `Пора отметить приём: ${medicationName}`,
             url: "/medications",
           });
         }
@@ -269,8 +273,8 @@ export async function runReminderCron() {
 
     await sendReminderToUser(meal.user_id, {
       key: reminderKey,
-      title: "Дневник здоровья",
-      body: `Измерьте сахар после еды: ${meal.meal_text}`,
+      title: "Измерь сахар",
+      body: `Пора измерить сахар после еды: ${meal.meal_text}`,
       url: "/",
     });
 

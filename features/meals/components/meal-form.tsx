@@ -1,9 +1,10 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { mealFormSchema, type MealFormValues } from "@/features/meals/lib/validation";
 import { toDatetimeLocalValue } from "@/lib/dates/format";
 import { Button } from "@/components/ui/button";
+import { DatetimePickerField } from "@/components/ui/datetime-picker-field";
 import { Input } from "@/components/ui/input";
 
 interface MealFormProps {
@@ -15,6 +16,7 @@ export function MealForm({ onSubmit, onCancel }: MealFormProps) {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<MealFormValues>({
     defaultValues: {
@@ -37,11 +39,17 @@ export function MealForm({ onSubmit, onCancel }: MealFormProps) {
         error={errors.meal_text?.message}
         {...register("meal_text")}
       />
-      <Input
-        label="Время приёма пищи"
-        type="datetime-local"
-        error={errors.eaten_at?.message}
-        {...register("eaten_at")}
+      <Controller
+        name="eaten_at"
+        control={control}
+        render={({ field }) => (
+          <DatetimePickerField
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            error={errors.eaten_at?.message}
+          />
+        )}
       />
       <p className="text-sm text-muted-foreground">
         Через 1 час придёт напоминание измерить сахар после еды.

@@ -88,7 +88,7 @@ create table public.glucose_logs (
   measured_at timestamptz not null,
   value numeric(4, 2) not null check (value > 0 and value < 50),
   measurement_type text not null
-    check (measurement_type in ('fasting', 'after_meal', 'bedtime', 'other')),
+    check (measurement_type in ('fasting', 'after_meal')),
   meal_text text,
   minutes_after_meal integer check (minutes_after_meal is null or minutes_after_meal >= 0),
   note text,
@@ -223,12 +223,10 @@ begin
     after_meal_limit := 7.0;
   end if;
 
-  if new.measurement_type = 'fasting' then
-    new.is_high := new.value > fasting_limit;
-  elsif new.measurement_type = 'after_meal' then
+  if new.measurement_type = 'after_meal' then
     new.is_high := new.value > after_meal_limit;
   else
-    new.is_high := false;
+    new.is_high := new.value > fasting_limit;
   end if;
 
   return new;

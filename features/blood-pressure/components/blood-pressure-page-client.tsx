@@ -1,28 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { Plus } from "@phosphor-icons/react";
+import { Controller, useForm } from "react-hook-form";
+import { ListBullets, Plus } from "@phosphor-icons/react";
 import {
   deleteBloodPressureLogAction,
+  getAllBloodPressureLogsAction,
   getBloodPressureLogsForDayAction,
   saveBloodPressureLogAction,
 } from "@/features/blood-pressure/actions/blood-pressure-actions";
+import { BloodPressureLogCard } from "@/features/blood-pressure/components/blood-pressure-log-card";
 import {
   bloodPressureFormSchema,
-  isUnusualBloodPressure,
   type BloodPressureFormValues,
 } from "@/features/blood-pressure/lib/validation";
-import { formatDateTime, toDatetimeLocalValue } from "@/lib/dates/format";
+import { formatDateTime, formatTime, toDatetimeLocalValue } from "@/lib/dates/format";
 import { getDefaultMeasuredAt, parseDateKey, toDateKey } from "@/lib/dates/day";
+import { cn } from "@/lib/utils/cn";
 import type { BloodPressureLog } from "@/types/database.types";
 import { AppHeader } from "@/components/layout/app-header";
+import { FixedBottomAction } from "@/components/layout/fixed-bottom-action";
 import { PageContainer } from "@/components/layout/page-container";
-import { Badge } from "@/components/ui/badge";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DatetimePickerField } from "@/components/ui/datetime-picker-field";
 import { DayNavigator } from "@/components/ui/day-navigator";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
@@ -32,15 +34,22 @@ interface BloodPressurePageClientProps {
   minDateKey: string;
 }
 
+type ViewMode = "day" | "all";
+
 function sortBloodPressureLogs(logs: BloodPressureLog[]) {
   return [...logs].sort(
     (a, b) => new Date(b.measured_at).getTime() - new Date(a.measured_at).getTime(),
   );
 }
 
+const headerIconButtonClassName =
+  "flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary-soft hover:text-primary";
+
 export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientProps) {
+  const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [dateKey, setDateKey] = useState(toDateKey());
   const [logs, setLogs] = useState<BloodPressureLog[]>([]);
+  const [allLogs, setAllLogs] = useState<BloodPressureLog[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<BloodPressureLog | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BloodPressureLog | null>(null);
@@ -52,13 +61,14 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
   const form = useForm<BloodPressureFormValues>({
     defaultValues: {
       measured_at: toDatetimeLocalValue(),
-      systolic: 0,
-      diastolic: 0,
+      systolic: Number.NaN,
+      diastolic: Number.NaN,
       pulse: "",
     },
   });
+  const { control } = form;
 
-  const load = useCallback(async () => {
+  const loadDayLogs = useCallback(async () => {
     const result = await getBloodPressureLogsForDayAction(dateKey);
     if (result.error) {
       setToast({ message: result.error, variant: "error" });
@@ -68,9 +78,27 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
     setLogs(result.data);
   }, [dateKey]);
 
+  const loadAllLogs = useCallback(async () => {
+    const result = await getAllBloodPressureLogsAction();
+    if (result.error) {
+      setToast({ message: result.error, variant: "error" });
+      setAllLogs([]);
+      return;
+    }
+    setAllLogs(result.data);
+  }, []);
+
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (viewMode === "day") {
+      void loadDayLogs();
+    }
+  }, [viewMode, loadDayLogs]);
+
+  useEffect(() => {
+    if (viewMode === "all") {
+      void loadAllLogs();
+    }
+  }, [viewMode, loadAllLogs]);
 
   function openSheet(log?: BloodPressureLog) {
     setEditing(log ?? null);
@@ -83,13 +111,44 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
             pulse: log.pulse != null ? String(log.pulse) : "",
           }
         : {
-            measured_at: getDefaultMeasuredAt(parseDateKey(dateKey)),
-            systolic: 0,
-            diastolic: 0,
+            measured_at:
+              viewMode === "day"
+                ? getDefaultMeasuredAt(parseDateKey(dateKey))
+                : toDatetimeLocalValue(),
+            systolic: Number.NaN,
+            diastolic: Number.NaN,
             pulse: "",
           },
     );
     setSheetOpen(true);
+  }
+
+  function updateLogCollections(savedLog: BloodPressureLog, isEdit: boolean) {
+    setAllLogs((current) =>
+      sortBloodPressureLogs(
+        isEdit
+          ? current.map((log) => (log.id === savedLog.id ? savedLog : log))
+          : [savedLog, ...current],
+      ),
+    );
+
+    const savedDateKey = toDateKey(new Date(savedLog.measured_at));
+    if (savedDateKey === dateKey) {
+      setLogs((current) =>
+        sortBloodPressureLogs(
+          isEdit
+            ? current.map((log) => (log.id === savedLog.id ? savedLog : log))
+            : [savedLog, ...current],
+        ),
+      );
+    } else if (isEdit) {
+      setLogs((current) => current.filter((log) => log.id !== savedLog.id));
+    }
+  }
+
+  function removeLogFromCollections(deletedLog: BloodPressureLog) {
+    setAllLogs((current) => current.filter((log) => log.id !== deletedLog.id));
+    setLogs((current) => current.filter((log) => log.id !== deletedLog.id));
   }
 
   async function onSubmit(values: BloodPressureFormValues) {
@@ -109,68 +168,71 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
     }
 
     if (result.data) {
-      setLogs((current) =>
-        sortBloodPressureLogs(
-          editing
-            ? current.map((log) => (log.id === editing.id ? result.data! : log))
-            : [result.data, ...current],
-        ),
-      );
+      updateLogCollections(result.data, Boolean(editing));
     }
 
     setToast({ message: editing ? "Запись обновлена" : "Запись добавлена", variant: "success" });
     setSheetOpen(false);
   }
 
+  const visibleLogs = viewMode === "all" ? allLogs : logs;
+
   return (
     <PageContainer>
-      <AppHeader title="Давление" />
-      <DayNavigator dateKey={dateKey} minDateKey={minDateKey} onChange={setDateKey} />
+      <AppHeader
+        title={
+          <span className="flex items-center gap-2">
+            <span>Давление</span>
+            <button
+              type="button"
+              aria-label={viewMode === "all" ? "Показать по дням" : "Показать все измерения"}
+              aria-pressed={viewMode === "all"}
+              className={cn(
+                headerIconButtonClassName,
+                viewMode === "all" && "bg-primary-soft text-primary",
+              )}
+              onClick={() => setViewMode((current) => (current === "day" ? "all" : "day"))}
+            >
+              <ListBullets size={20} weight={viewMode === "all" ? "fill" : "regular"} />
+            </button>
+          </span>
+        }
+      />
 
-      {logs.length === 0 ? (
+      {viewMode === "day" ? (
+        <DayNavigator dateKey={dateKey} minDateKey={minDateKey} onChange={setDateKey} />
+      ) : null}
+
+      {visibleLogs.length === 0 ? (
         <EmptyState
-          title="Нет измерений за этот день"
-          description="Добавьте измерение давления за выбранную дату."
+          title={viewMode === "all" ? "Нет измерений" : "Нет измерений за этот день"}
+          description={
+            viewMode === "all"
+              ? "Добавьте первое измерение давления."
+              : "Добавьте измерение давления за выбранную дату."
+          }
           action={<Button onClick={() => openSheet()}>Добавить</Button>}
         />
       ) : (
-        <div className="mb-24 space-y-3">
-          {logs.map((log) => {
-            const unusual = isUnusualBloodPressure(log.systolic, log.diastolic);
-            return (
-              <Card key={log.id} className={unusual ? "border-warning bg-warning/20" : ""}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-2xl font-semibold">
-                      {log.systolic}/{log.diastolic}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDateTime(log.measured_at)}
-                      {log.pulse ? ` · пульс ${log.pulse}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="md" onClick={() => openSheet(log)}>
-                      Изм.
-                    </Button>
-                    <Button variant="ghost" size="md" onClick={() => setDeleteTarget(log)}>
-                      Удал.
-                    </Button>
-                  </div>
-                </div>
-                {unusual ? <Badge variant="warning">Нетипичное значение</Badge> : null}
-              </Card>
-            );
-          })}
+        <div className="space-y-3">
+          {visibleLogs.map((log) => (
+            <BloodPressureLogCard
+              key={log.id}
+              log={log}
+              timestampLabel={viewMode === "all" ? formatDateTime(log.measured_at) : formatTime(log.measured_at)}
+              onEdit={() => openSheet(log)}
+              onDelete={() => setDeleteTarget(log)}
+            />
+          ))}
         </div>
       )}
 
-      <div className="fixed inset-x-4 bottom-24 z-40 mx-auto max-w-lg">
-        <Button className="w-full" onClick={() => openSheet()}>
-          <Plus size={20} weight="bold" />
+      <FixedBottomAction>
+        <Button className="w-full shadow-lg shadow-primary/20" onClick={() => openSheet()}>
+          <Plus size={16} weight="bold" />
           Добавить давление
         </Button>
-      </div>
+      </FixedBottomAction>
 
       <BottomSheet
         open={sheetOpen}
@@ -178,12 +240,58 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
         onClose={() => setSheetOpen(false)}
       >
         <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-          <Input label="Дата и время" type="datetime-local" {...form.register("measured_at")} />
+          <Controller
+            name="measured_at"
+            control={control}
+            render={({ field }) => (
+              <DatetimePickerField
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
           <div className="grid grid-cols-2 gap-3">
-            <Input label="Верхнее" type="number" {...form.register("systolic", { valueAsNumber: true })} />
-            <Input label="Нижнее" type="number" {...form.register("diastolic", { valueAsNumber: true })} />
+            <Controller
+              name="systolic"
+              control={control}
+              render={({ field: { onChange, onBlur, value, ref } }) => (
+                <Input
+                  label="Верхнее"
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="120"
+                  ref={ref}
+                  onBlur={onBlur}
+                  value={Number.isNaN(value) ? "" : value}
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    onChange(nextValue === "" ? Number.NaN : Number(nextValue));
+                  }}
+                />
+              )}
+            />
+            <Controller
+              name="diastolic"
+              control={control}
+              render={({ field: { onChange, onBlur, value, ref } }) => (
+                <Input
+                  label="Нижнее"
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="80"
+                  ref={ref}
+                  onBlur={onBlur}
+                  value={Number.isNaN(value) ? "" : value}
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    onChange(nextValue === "" ? Number.NaN : Number(nextValue));
+                  }}
+                />
+              )}
+            />
           </div>
-          <Input label="Пульс (необязательно)" type="number" {...form.register("pulse")} />
+          <Input label="Пульс" type="number" {...form.register("pulse")} />
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? "Сохраняем..." : "Сохранить"}
           </Button>
@@ -198,12 +306,17 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
           if (!deleteTarget) return;
 
           const deletedLog = deleteTarget;
-          setLogs((current) => current.filter((log) => log.id !== deletedLog.id));
+          removeLogFromCollections(deletedLog);
           setDeleteTarget(null);
 
           const result = await deleteBloodPressureLogAction(deletedLog.id);
           if (result.error) {
-            setLogs((current) => sortBloodPressureLogs([deletedLog, ...current]));
+            if (viewMode === "all") {
+              setAllLogs((current) => sortBloodPressureLogs([deletedLog, ...current]));
+            }
+            if (toDateKey(new Date(deletedLog.measured_at)) === dateKey) {
+              setLogs((current) => sortBloodPressureLogs([deletedLog, ...current]));
+            }
             setToast({ message: result.error, variant: "error" });
             return;
           }

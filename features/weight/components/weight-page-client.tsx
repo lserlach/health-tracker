@@ -1,23 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useCallback, useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { Plus } from "@phosphor-icons/react";
 import {
   deleteWeightLogAction,
   getWeightLogsForDayAction,
+  getWeightStatsAction,
   saveWeightLogAction,
 } from "@/features/weight/actions/weight-actions";
+import { formatWeightDelta } from "@/features/weight/lib/weight-stats";
 import { weightFormSchema, type WeightFormValues } from "@/features/weight/lib/validation";
-import { formatDateTime, toDatetimeLocalValue } from "@/lib/dates/format";
+import { formatTime, toDatetimeLocalValue } from "@/lib/dates/format";
 import { getDefaultMeasuredAt, parseDateKey, toDateKey } from "@/lib/dates/day";
 import type { WeightLog } from "@/types/database.types";
 import { AppHeader } from "@/components/layout/app-header";
+import { FixedBottomAction } from "@/components/layout/fixed-bottom-action";
 import { PageContainer } from "@/components/layout/page-container";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
+import { RecordActionButtons } from "@/components/ui/record-action-buttons";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DatetimePickerField } from "@/components/ui/datetime-picker-field";
 import { DayNavigator } from "@/components/ui/day-navigator";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
@@ -37,6 +42,10 @@ function sortWeightLogs(logs: WeightLog[]) {
 export function WeightPageClient({ minDateKey }: WeightPageClientProps) {
   const [dateKey, setDateKey] = useState(toDateKey());
   const [logs, setLogs] = useState<WeightLog[]>([]);
+  const [weightStats, setWeightStats] = useState<{ gain7Days: number | null; gainAllTime: number | null }>({
+    gain7Days: null,
+    gainAllTime: null,
+  });
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<WeightLog | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<WeightLog | null>(null);
@@ -51,25 +60,32 @@ export function WeightPageClient({ minDateKey }: WeightPageClientProps) {
       weight: 0,
     },
   });
+  const { control } = form;
 
   const load = useCallback(async () => {
-    const result = await getWeightLogsForDayAction(dateKey);
-    if (result.error) {
-      setToast({ message: result.error, variant: "error" });
+    const [logsResult, statsResult] = await Promise.all([
+      getWeightLogsForDayAction(dateKey),
+      getWeightStatsAction(dateKey),
+    ]);
+
+    if (logsResult.error) {
+      setToast({ message: logsResult.error, variant: "error" });
       setLogs([]);
-      return;
+    } else {
+      setLogs(logsResult.data);
     }
-    setLogs(result.data);
+
+    if (statsResult.error) {
+      setToast({ message: statsResult.error, variant: "error" });
+      setWeightStats({ gain7Days: null, gainAllTime: null });
+    } else if (statsResult.data) {
+      setWeightStats(statsResult.data);
+    }
   }, [dateKey]);
 
   useEffect(() => {
     void load();
   }, [load]);
-
-  const stats = useMemo(() => {
-    if (logs.length === 0) return { last: "—", count: 0 };
-    return { last: Number(logs[0].weight).toFixed(1), count: logs.length };
-  }, [logs]);
 
   function openSheet(log?: WeightLog) {
     setEditing(log ?? null);
@@ -111,6 +127,11 @@ export function WeightPageClient({ minDateKey }: WeightPageClientProps) {
             : [result.data, ...current],
         ),
       );
+
+      const statsResult = await getWeightStatsAction(dateKey);
+      if (statsResult.data) {
+        setWeightStats(statsResult.data);
+      }
     }
 
     setToast({ message: editing ? "Запись обновлена" : "Запись добавлена", variant: "success" });
@@ -123,8 +144,11 @@ export function WeightPageClient({ minDateKey }: WeightPageClientProps) {
       <DayNavigator dateKey={dateKey} minDateKey={minDateKey} onChange={setDateKey} />
 
       <section className="mb-6 grid grid-cols-2 gap-3">
-        <StatCard label="Вес за день" value={stats.last === "—" ? "—" : `${stats.last} кг`} />
-        <StatCard label="Записей" value={stats.count} />
+        <StatCard
+          label="Прибавка за 7 дней"
+          value={formatWeightDelta(weightStats.gain7Days)}
+        />
+        <StatCard label="За всё время" value={formatWeightDelta(weightStats.gainAllTime)} />
       </section>
 
       {logs.length === 0 ? (
@@ -134,34 +158,30 @@ export function WeightPageClient({ minDateKey }: WeightPageClientProps) {
           action={<Button onClick={() => openSheet()}>Добавить</Button>}
         />
       ) : (
-        <div className="mb-24 space-y-3">
+        <div className="space-y-3">
           {logs.map((log) => (
-            <Card key={log.id}>
+            <Card key={log.id} className="border-0 shadow-none">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-2xl font-semibold">{Number(log.weight).toFixed(1)} кг</p>
-                  <p className="text-sm text-muted-foreground">{formatDateTime(log.measured_at)}</p>
+                  <p className="font-heading text-2xl font-semibold">{Number(log.weight).toFixed(1)} кг</p>
+                  <p className="text-sm text-muted-foreground">{formatTime(log.measured_at)}</p>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="md" onClick={() => openSheet(log)}>
-                    Изм.
-                  </Button>
-                  <Button variant="ghost" size="md" onClick={() => setDeleteTarget(log)}>
-                    Удал.
-                  </Button>
-                </div>
+                <RecordActionButtons
+                  onEdit={() => openSheet(log)}
+                  onDelete={() => setDeleteTarget(log)}
+                />
               </div>
             </Card>
           ))}
         </div>
       )}
 
-      <div className="fixed inset-x-4 bottom-24 z-40 mx-auto max-w-lg">
-        <Button className="w-full" onClick={() => openSheet()}>
-          <Plus size={20} weight="bold" />
+      <FixedBottomAction>
+        <Button className="w-full shadow-lg shadow-primary/20" onClick={() => openSheet()}>
+          <Plus size={16} weight="bold" />
           Добавить вес
         </Button>
-      </div>
+      </FixedBottomAction>
 
       <BottomSheet
         open={sheetOpen}
@@ -169,7 +189,17 @@ export function WeightPageClient({ minDateKey }: WeightPageClientProps) {
         onClose={() => setSheetOpen(false)}
       >
         <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-          <Input label="Дата и время" type="datetime-local" {...form.register("measured_at")} />
+          <Controller
+            name="measured_at"
+            control={control}
+            render={({ field }) => (
+              <DatetimePickerField
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
           <Input label="Вес, кг" type="number" step="0.1" {...form.register("weight", { valueAsNumber: true })} />
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? "Сохраняем..." : "Сохранить"}
@@ -193,6 +223,11 @@ export function WeightPageClient({ minDateKey }: WeightPageClientProps) {
             setLogs((current) => sortWeightLogs([deletedLog, ...current]));
             setToast({ message: result.error, variant: "error" });
             return;
+          }
+
+          const statsResult = await getWeightStatsAction(dateKey);
+          if (statsResult.data) {
+            setWeightStats(statsResult.data);
           }
 
           setToast({ message: "Запись удалена", variant: "success" });

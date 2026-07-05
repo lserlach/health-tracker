@@ -102,7 +102,7 @@ export function HomePageClient({
         <h2 className="mb-3 text-sm font-medium text-muted-foreground">Последние показатели</h2>
         <div className="grid grid-cols-2 gap-3">
           <StatCard
-            label="Последний сахар"
+            label="Сахар"
             value={lastGlucose ? `${Number(lastGlucose.value).toFixed(1)}` : "—"}
             hint={
               lastGlucose ? (lastGlucose.is_high ? "повышено" : "в норме") : "Сегодня нет записей"

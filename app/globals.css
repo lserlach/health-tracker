@@ -3,6 +3,10 @@
 @source inline("text-danger text-warning-foreground bg-danger/12 bg-danger/18 border-danger/20 ring-danger/30 shadow-danger/10 hover:bg-danger hover:bg-danger/12 hover:bg-danger/18 hover:text-danger");
 
 :root {
+  /* iPhone 15 logical viewport (matches Safari/PWA on device) */
+  --app-width: 393px;
+  --app-height: 852px;
+  --app-radius: 2.5rem;
   --background: #faf8ff;
   --foreground: #342e45;
   --field-foreground: #2f2842;
@@ -43,6 +47,8 @@
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-border: var(--border);
+  --color-fasting-badge-bg: #e0ebff;
+  --color-fasting-badge-fg: #2f6fe8;
   --font-sans: var(--font-manrope), system-ui, sans-serif;
   --font-heading: var(--font-inter-tight), system-ui, sans-serif;
   --radius-card: 1rem;
@@ -75,4 +81,26 @@ h6 {
 
 .bg-primary-gradient {
   background: var(--primary-gradient);
+}
+
+@media (min-width: 768px) {
+  /* Keep modals and toasts inside the desktop phone frame */
+  .app-overlay-scope {
+    inset: auto !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: var(--app-width) !important;
+    height: min(var(--app-height), 100dvh) !important;
+    transform: translate(-50%, -50%);
+    border-radius: var(--app-radius);
+    overflow: hidden;
+  }
+
+  .app-toast-scope {
+    left: 50% !important;
+    right: auto !important;
+    width: calc(var(--app-width) - 2rem) !important;
+    max-width: calc(var(--app-width) - 2rem) !important;
+    transform: translateX(-50%);
+  }
 }

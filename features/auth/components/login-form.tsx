@@ -73,7 +73,7 @@ export function LoginForm() {
               autoComplete="username"
               autoCapitalize="none"
               spellCheck={false}
-              placeholder="lserlach"
+              placeholder="логин"
               value={login}
               onChange={(event) => setLogin(event.target.value)}
               disabled={isLoading}

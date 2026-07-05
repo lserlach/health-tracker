@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils/cn";
 
 interface BottomSheetProps {
   open: boolean;
-  title: string;
-  subtitle?: string;
+  title?: string | null;
+  subtitle?: ReactNode;
   onClose: () => void;
   children: ReactNode;
 }
@@ -24,7 +24,7 @@ export function BottomSheet({ open, title, subtitle, onClose, children }: Bottom
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center">
+    <div className="app-overlay-scope fixed inset-0 z-[100] flex items-end justify-center">
       <button
         type="button"
         className="absolute inset-0 bg-black/30"
@@ -33,33 +33,50 @@ export function BottomSheet({ open, title, subtitle, onClose, children }: Bottom
       />
       <div
         className={cn(
-          "relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-[1.25rem] bg-card p-4 shadow-xl",
+          "relative z-10 max-h-[90vh] w-full overflow-y-auto rounded-t-[1.25rem] bg-card p-4 shadow-xl",
           "pb-[max(1rem,env(safe-area-inset-bottom))]",
         )}
       >
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="min-w-0 pr-2">
-            <h2
-              className={cn(
-                "text-xl font-semibold text-foreground",
-                subtitle && "font-heading leading-tight",
-              )}
+        {title !== null ? (
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 pr-2">
+              {title ? (
+                <h2
+                  className={cn(
+                    "text-xl font-semibold text-foreground",
+                    subtitle && "font-heading leading-tight",
+                  )}
+                >
+                  {title}
+                </h2>
+              ) : null}
+              {subtitle ? (
+                typeof subtitle === "string" ? (
+                  <p className="mt-1.5 text-sm leading-snug text-muted-foreground">{subtitle}</p>
+                ) : (
+                  subtitle
+                )
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-primary-soft"
+              aria-label="Закрыть"
             >
-              {title}
-            </h2>
-            {subtitle ? (
-              <p className="mt-1.5 text-sm leading-snug text-muted-foreground">{subtitle}</p>
-            ) : null}
+              <X size={20} />
+            </button>
           </div>
+        ) : (
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-primary-soft"
+            className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-primary-soft"
             aria-label="Закрыть"
           >
             <X size={20} />
           </button>
-        </div>
+        )}
         {children}
       </div>
     </div>

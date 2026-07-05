@@ -39,6 +39,20 @@ export async function getBloodPressureLogsForDayAction(dateKey: string) {
   return { data: (data ?? []) as BloodPressureLog[] };
 }
 
+export async function getAllBloodPressureLogsAction(limit = 200) {
+  const { supabase, user, error: authError } = await getAuthenticatedUser();
+  if (!user) return { error: authError, data: [] as BloodPressureLog[] };
+
+  const { data, error } = await supabase
+    .from("blood_pressure_logs")
+    .select("*")
+    .order("measured_at", { ascending: false })
+    .limit(limit);
+
+  if (error) return { error: formatSupabaseError(error), data: [] as BloodPressureLog[] };
+  return { data: (data ?? []) as BloodPressureLog[] };
+}
+
 export async function getTodayBloodPressureLogsAction() {
   return getBloodPressureLogsForDayAction(toDateKey());
 }

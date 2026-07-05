@@ -24,11 +24,11 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 backdrop-blur-md"
+      className="z-50 shrink-0 border-t border-border bg-card"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Основная навигация"
     >
-      <div className="mx-auto flex max-w-lg items-stretch justify-around px-2 py-2">
+      <div className="flex w-full items-stretch justify-around px-2 py-2">
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive =
             href === "/" ? pathname === "/" : pathname.startsWith(href);

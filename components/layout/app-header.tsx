@@ -4,7 +4,7 @@ import { FilePdf, Gear } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils/cn";
 
 interface AppHeaderProps {
-  title: string;
+  title: ReactNode;
   showActions?: boolean;
   actions?: ReactNode;
   className?: string;

@@ -21,9 +21,9 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("push", (event) => {
   const payload = event.data?.json?.() ?? {};
-  const title = payload.title ?? "Дневник здоровья";
+  const title = payload.title ?? payload.body ?? "Уведомление";
   const options = {
-    body: payload.body ?? "",
+    body: payload.title && payload.body ? payload.body : "",
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",
     data: { url: payload.url ?? "/" },

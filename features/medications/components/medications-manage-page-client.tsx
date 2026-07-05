@@ -13,10 +13,12 @@ import { getIntakeRelationLabel } from "@/features/medications/lib/validation";
 import type { MedicationFormValues } from "@/features/medications/lib/validation";
 import type { Medication } from "@/types/database.types";
 import { AppHeader } from "@/components/layout/app-header";
+import { FixedBottomAction } from "@/components/layout/fixed-bottom-action";
 import { PageContainer } from "@/components/layout/page-container";
 import { Badge } from "@/components/ui/badge";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
+import { RecordActionButtons } from "@/components/ui/record-action-buttons";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -96,11 +98,11 @@ export function MedicationsManagePageClient() {
           action={<Button onClick={() => openSheet()}>Добавить</Button>}
         />
       ) : (
-        <div className="mb-24 space-y-3">
+        <div className="space-y-3">
           {medications.map((medication) => {
             const times = (medication.schedule_times as string[]).join(", ");
             return (
-              <Card key={medication.id}>
+              <Card key={medication.id} className="border-0 shadow-none">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -114,14 +116,10 @@ export function MedicationsManagePageClient() {
                       {getIntakeRelationLabel(medication.intake_relation)}
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="md" onClick={() => openSheet(medication)}>
-                      Изм.
-                    </Button>
-                    <Button variant="ghost" size="md" onClick={() => setDeleteTarget(medication)}>
-                      Удал.
-                    </Button>
-                  </div>
+                  <RecordActionButtons
+                    onEdit={() => openSheet(medication)}
+                    onDelete={() => setDeleteTarget(medication)}
+                  />
                 </div>
               </Card>
             );
@@ -129,12 +127,12 @@ export function MedicationsManagePageClient() {
         </div>
       )}
 
-      <div className="fixed inset-x-4 bottom-24 z-40 mx-auto max-w-lg">
-        <Button className="w-full" onClick={() => openSheet()}>
-          <Plus size={20} weight="bold" />
+      <FixedBottomAction>
+        <Button className="w-full shadow-lg shadow-primary/20" onClick={() => openSheet()}>
+          <Plus size={16} weight="bold" />
           Добавить лекарство
         </Button>
-      </div>
+      </FixedBottomAction>
 
       <BottomSheet
         open={sheetOpen}

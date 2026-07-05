@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus } from "@phosphor-icons/react";
 import {
   deleteGlucoseLogAction,
@@ -12,13 +12,13 @@ import { GlucoseForm } from "@/features/glucose/components/glucose-form";
 import { GlucoseList } from "@/features/glucose/components/glucose-list";
 import type { GlucoseLog } from "@/types/database.types";
 import { AppHeader } from "@/components/layout/app-header";
+import { FixedBottomAction } from "@/components/layout/fixed-bottom-action";
 import { PageContainer } from "@/components/layout/page-container";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DayNavigator } from "@/components/ui/day-navigator";
 import { EmptyState } from "@/components/ui/empty-state";
-import { StatCard } from "@/components/ui/stat-card";
 import { Toast } from "@/components/ui/toast";
 import { getDefaultMeasuredAt, parseDateKey, toDateKey } from "@/lib/dates/day";
 
@@ -59,18 +59,6 @@ export function GlucosePageClient({ minDateKey }: GlucosePageClientProps) {
   useEffect(() => {
     void loadLogs();
   }, [loadLogs]);
-
-  const stats = useMemo(() => {
-    if (logs.length === 0) {
-      return { last: "—", avg: "—", highCount: 0 };
-    }
-    const last = Number(logs[0].value).toFixed(1);
-    const avg = (
-      logs.reduce((sum, log) => sum + Number(log.value), 0) / logs.length
-    ).toFixed(1);
-    const highCount = logs.filter((log) => log.is_high).length;
-    return { last, avg, highCount };
-  }, [logs]);
 
   async function handleSubmit(values: GlucoseFormValues) {
     const result = await saveGlucoseLogAction(values, editingLog?.id);
@@ -127,20 +115,10 @@ export function GlucosePageClient({ minDateKey }: GlucosePageClientProps) {
 
   return (
     <PageContainer>
-      <AppHeader title="Сахар и еда" />
+      <AppHeader title="Измерение сахара" />
       <DayNavigator dateKey={dateKey} minDateKey={minDateKey} onChange={setDateKey} />
 
-      <section className="mb-6 grid grid-cols-3 gap-3">
-        <StatCard label="Последний" value={stats.last} />
-        <StatCard label="Среднее" value={stats.avg} />
-        <StatCard
-          label="Повышено"
-          value={stats.highCount}
-          hint={stats.highCount > 0 ? "за день" : undefined}
-        />
-      </section>
-
-      <section className="mb-24">
+      <section>
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Загрузка...</p>
         ) : logs.length === 0 ? (
@@ -159,16 +137,16 @@ export function GlucosePageClient({ minDateKey }: GlucosePageClientProps) {
         )}
       </section>
 
-      <div className="fixed inset-x-4 bottom-24 z-40 mx-auto max-w-lg">
+      <FixedBottomAction>
         <Button className="w-full shadow-lg shadow-primary/20" onClick={openCreateSheet}>
-          <Plus size={20} weight="bold" />
+          <Plus size={16} weight="bold" />
           Добавить сахар
         </Button>
-      </div>
+      </FixedBottomAction>
 
       <BottomSheet
         open={sheetOpen}
-        title={editingLog ? "Редактировать" : "Добавить сахар"}
+        title={null}
         onClose={() => {
           setSheetOpen(false);
           setEditingLog(null);

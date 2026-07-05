@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { BottomNav } from "@/components/layout/bottom-nav";
+import { AppShell } from "@/components/layout/app-shell";
+import { isAllowedAuthEmail } from "@/features/auth/lib/auth-users";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({
@@ -16,16 +17,10 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  const allowedEmail = process.env.ALLOWED_EMAIL?.trim().toLowerCase();
-  if (allowedEmail && user.email?.toLowerCase() !== allowedEmail) {
+  if (!isAllowedAuthEmail(user.email ?? "")) {
     await supabase.auth.signOut();
     redirect("/login?error=unauthorized");
   }
 
-  return (
-    <>
-      <main className="flex min-h-full flex-col">{children}</main>
-      <BottomNav />
-    </>
-  );
+  return <AppShell>{children}</AppShell>;
 }

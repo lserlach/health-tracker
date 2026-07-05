@@ -23,11 +23,12 @@ import {
 } from "@/features/weight/lib/validation";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
+import { DatetimePickerField } from "@/components/ui/datetime-picker-field";
 import { Input } from "@/components/ui/input";
 import { Toast } from "@/components/ui/toast";
 import { formatDateTime, toDatetimeLocalValue } from "@/lib/dates/format";
 import { cn } from "@/lib/utils/cn";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
 type SheetType = "glucose" | "meal" | "medication" | "blood_pressure" | "weight" | null;
 
@@ -68,8 +69,8 @@ export function HomeQuickActions({ medicationLogs }: HomeQuickActionsProps) {
   const bpForm = useForm<BloodPressureFormValues>({
     defaultValues: {
       measured_at: toDatetimeLocalValue(),
-      systolic: 0,
-      diastolic: 0,
+      systolic: Number.NaN,
+      diastolic: Number.NaN,
       pulse: "",
     },
   });
@@ -79,8 +80,8 @@ export function HomeQuickActions({ medicationLogs }: HomeQuickActionsProps) {
     weightForm.reset({ measured_at: toDatetimeLocalValue(), weight: 0 });
     bpForm.reset({
       measured_at: toDatetimeLocalValue(),
-      systolic: 0,
-      diastolic: 0,
+      systolic: Number.NaN,
+      diastolic: Number.NaN,
       pulse: "",
     });
   }
@@ -218,7 +219,17 @@ export function HomeQuickActions({ medicationLogs }: HomeQuickActionsProps) {
 
       <BottomSheet open={activeSheet === "weight"} title="Добавить вес" onClose={closeSheet}>
         <form className="space-y-4" onSubmit={weightForm.handleSubmit(handleWeightSubmit)}>
-          <Input label="Дата и время" type="datetime-local" {...weightForm.register("measured_at")} />
+          <Controller
+            name="measured_at"
+            control={weightForm.control}
+            render={({ field }) => (
+              <DatetimePickerField
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
           <Input
             label="Вес, кг"
             type="number"
@@ -233,20 +244,58 @@ export function HomeQuickActions({ medicationLogs }: HomeQuickActionsProps) {
 
       <BottomSheet open={activeSheet === "blood_pressure"} title="Отметить давление" onClose={closeSheet}>
         <form className="space-y-4" onSubmit={bpForm.handleSubmit(handleBloodPressureSubmit)}>
-          <Input label="Дата и время" type="datetime-local" {...bpForm.register("measured_at")} />
+          <Controller
+            name="measured_at"
+            control={bpForm.control}
+            render={({ field }) => (
+              <DatetimePickerField
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+              />
+            )}
+          />
           <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Верхнее"
-              type="number"
-              {...bpForm.register("systolic", { valueAsNumber: true })}
+            <Controller
+              name="systolic"
+              control={bpForm.control}
+              render={({ field: { onChange, onBlur, value, ref } }) => (
+                <Input
+                  label="Верхнее"
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="120"
+                  ref={ref}
+                  onBlur={onBlur}
+                  value={Number.isNaN(value) ? "" : value}
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    onChange(nextValue === "" ? Number.NaN : Number(nextValue));
+                  }}
+                />
+              )}
             />
-            <Input
-              label="Нижнее"
-              type="number"
-              {...bpForm.register("diastolic", { valueAsNumber: true })}
+            <Controller
+              name="diastolic"
+              control={bpForm.control}
+              render={({ field: { onChange, onBlur, value, ref } }) => (
+                <Input
+                  label="Нижнее"
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="80"
+                  ref={ref}
+                  onBlur={onBlur}
+                  value={Number.isNaN(value) ? "" : value}
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    onChange(nextValue === "" ? Number.NaN : Number(nextValue));
+                  }}
+                />
+              )}
             />
           </div>
-          <Input label="Пульс (необязательно)" type="number" {...bpForm.register("pulse")} />
+          <Input label="Пульс" type="number" {...bpForm.register("pulse")} />
           <Button type="submit" className="w-full">
             Сохранить
           </Button>

@@ -6,11 +6,7 @@ export type IntakeRelation =
 
 export type MedicationLogStatus = "pending" | "taken" | "skipped";
 
-export type GlucoseMeasurementType =
-  | "fasting"
-  | "after_meal"
-  | "bedtime"
-  | "other";
+export type GlucoseMeasurementType = "fasting" | "after_meal";
 
 export interface Profile {
   id: string;

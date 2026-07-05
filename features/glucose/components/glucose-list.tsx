@@ -1,11 +1,13 @@
 "use client";
 
-import { PencilSimple, Trash } from "@phosphor-icons/react";
-import { getMeasurementTypeLabel } from "@/features/glucose/lib/validation";
-import { formatDateTime } from "@/lib/dates/format";
+import { formatTime } from "@/lib/dates/format";
+import { cn } from "@/lib/utils/cn";
 import type { GlucoseLog } from "@/types/database.types";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { GlucoseMeasurementBadge } from "@/features/glucose/components/glucose-measurement-badge";
+import { MealItemsDisclosure } from "@/features/glucose/components/meal-items-disclosure";
+import { RecordActionButtons } from "@/components/ui/record-action-buttons";
 
 interface GlucoseListProps {
   logs: GlucoseLog[];
@@ -19,47 +21,32 @@ export function GlucoseList({ logs, onEdit, onDelete }: GlucoseListProps) {
   return (
     <div className="space-y-3">
       {logs.map((log) => (
-        <Card key={log.id} className="space-y-3">
+        <Card key={log.id} className="space-y-3 border-0 shadow-none">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-2xl font-semibold text-foreground">
-                {Number(log.value).toFixed(1)}{" "}
-                <span className="text-sm font-normal text-muted-foreground">ммоль/л</span>
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {formatDateTime(log.measured_at)}
-              </p>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <GlucoseMeasurementBadge type={log.measurement_type} />
+                <span className="text-xs text-muted-foreground">{formatTime(log.measured_at)}</span>
+              </div>
             </div>
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={() => onEdit(log)}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-primary-soft hover:text-primary"
-                aria-label="Редактировать"
-              >
-                <PencilSimple size={18} />
-              </button>
-              <button
-                type="button"
-                onClick={() => onDelete(log)}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-danger/12 hover:text-danger"
-                aria-label="Удалить"
-              >
-                <Trash size={18} />
-              </button>
-            </div>
+            <RecordActionButtons onEdit={() => onEdit(log)} onDelete={() => onDelete(log)} />
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Badge>{getMeasurementTypeLabel(log.measurement_type)}</Badge>
+          <div className="flex flex-wrap items-end gap-2">
+            <p
+              className={cn(
+                "font-heading text-2xl font-semibold leading-none",
+                log.is_high ? "text-danger" : "text-foreground",
+              )}
+            >
+              {Number(log.value).toFixed(1)}{" "}
+              <span className="text-sm font-normal text-muted-foreground">ммоль/л</span>
+            </p>
             {log.is_high ? <Badge variant="warning">Повышено</Badge> : null}
           </div>
 
           {log.measurement_type === "after_meal" && log.meal_text ? (
-            <p className="text-sm text-muted-foreground">
-              {log.meal_text}
-              {log.minutes_after_meal ? ` · через ${log.minutes_after_meal} мин` : ""}
-            </p>
+            <MealItemsDisclosure mealText={log.meal_text} />
           ) : null}
         </Card>
       ))}

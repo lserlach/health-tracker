@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import {
   glucoseFormSchema,
-  MEASUREMENT_TYPE_OPTIONS,
+  normalizeFormMeasurementType,
   type GlucoseFormValues,
 } from "@/features/glucose/lib/validation";
+import { MealItemsInput } from "@/features/glucose/components/meal-items-input";
+import { MeasurementTypeTabs } from "@/features/glucose/components/measurement-type-tabs";
 import { toDatetimeLocalValue } from "@/lib/dates/format";
 import type { GlucoseLog } from "@/types/database.types";
 import { Button } from "@/components/ui/button";
+import { DatetimeHeaderPicker } from "@/components/ui/datetime-header-picker";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 
 interface GlucoseFormProps {
   initialData?: GlucoseLog;
@@ -30,18 +32,16 @@ function getDefaultValues(
     return {
       value: initialData.value,
       measured_at: toDatetimeLocalValue(new Date(initialData.measured_at)),
-      measurement_type: initialData.measurement_type,
+      measurement_type: normalizeFormMeasurementType(initialData.measurement_type),
       meal_text: initialData.meal_text ?? "",
-      minutes_after_meal: initialData.minutes_after_meal ?? 60,
     };
   }
 
   return {
-    value: 0,
+    value: Number.NaN,
     measured_at: defaultMeasuredAt ?? toDatetimeLocalValue(),
     measurement_type: defaultMeasurementType ?? "fasting",
     meal_text: "",
-    minutes_after_meal: 60,
   };
 }
 
@@ -53,10 +53,10 @@ export function GlucoseForm({
   onCancel,
 }: GlucoseFormProps) {
   const {
-    register,
     handleSubmit,
     watch,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<GlucoseFormValues>({
     defaultValues: getDefaultValues(initialData, defaultMeasurementType, defaultMeasuredAt),
@@ -78,46 +78,71 @@ export function GlucoseForm({
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit(handleFormSubmit)}>
-      <Input
-        label="Сахар, ммоль/л"
-        type="number"
-        step="0.1"
-        inputMode="decimal"
-        placeholder="5.4"
-        error={errors.value?.message}
-        {...register("value", { valueAsNumber: true })}
+      <div className="mb-2 pr-12">
+        <h2 className="font-heading text-xl font-semibold leading-tight text-foreground">
+          {initialData ? "Редактировать" : "Добавить сахар"}
+        </h2>
+        <Controller
+          name="measured_at"
+          control={control}
+          render={({ field }) => (
+            <DatetimeHeaderPicker
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={errors.measured_at?.message}
+            />
+          )}
+        />
+      </div>
+
+      <Controller
+        name="measurement_type"
+        control={control}
+        render={({ field }) => (
+          <MeasurementTypeTabs
+            value={field.value}
+            onChange={field.onChange}
+            error={errors.measurement_type?.message}
+          />
+        )}
       />
 
-      <Input
-        label="Дата и время"
-        type="datetime-local"
-        error={errors.measured_at?.message}
-        {...register("measured_at")}
-      />
-
-      <Select
-        label="Тип измерения"
-        options={MEASUREMENT_TYPE_OPTIONS}
-        error={errors.measurement_type?.message}
-        {...register("measurement_type")}
+      <Controller
+        name="value"
+        control={control}
+        render={({ field: { onChange, onBlur, value, ref } }) => (
+          <Input
+            label="Сахар, ммоль/л"
+            type="number"
+            step="0.1"
+            inputMode="decimal"
+            placeholder="5.4"
+            error={errors.value?.message}
+            ref={ref}
+            onBlur={onBlur}
+            value={Number.isNaN(value) ? "" : value}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              onChange(nextValue === "" ? Number.NaN : Number(nextValue));
+            }}
+          />
+        )}
       />
 
       {measurementType === "after_meal" ? (
-        <>
-          <Input
-            label="Что ели"
-            placeholder="Овсянка, яблоко..."
-            error={errors.meal_text?.message}
-            {...register("meal_text")}
-          />
-          <Input
-            label="Через сколько минут после еды"
-            type="number"
-            inputMode="numeric"
-            error={errors.minutes_after_meal?.message}
-            {...register("minutes_after_meal", { valueAsNumber: true })}
-          />
-        </>
+        <Controller
+          name="meal_text"
+          control={control}
+          render={({ field }) => (
+            <MealItemsInput
+              value={field.value ?? ""}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={errors.meal_text?.message}
+            />
+          )}
+        />
       ) : null}
 
       <div className="flex gap-3 pt-2">

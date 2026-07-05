@@ -9,7 +9,7 @@ import {
 } from "@/features/medications/actions/medication-log-actions";
 import { getIntakeRelationLabel } from "@/features/medications/lib/validation";
 import type { MedicationLogWithMedication } from "@/features/medications/services/generate-daily-logs";
-import { formatDateTime } from "@/lib/dates/format";
+import { formatTime } from "@/lib/dates/format";
 import { toDateKey } from "@/lib/dates/day";
 import { AppHeader } from "@/components/layout/app-header";
 import { PageContainer } from "@/components/layout/page-container";
@@ -107,7 +107,7 @@ export function MedicationsPageClient({ minDateKey }: { minDateKey: string }) {
 
       {logs.length > 0 ? (
         <section className="mb-6">
-          <Card className="flex items-center justify-between gap-3">
+          <Card className="flex items-center justify-between gap-3 border-0 shadow-none">
             <div>
               <p className="text-sm text-muted-foreground">За день</p>
               <p className="font-heading text-2xl font-semibold">
@@ -145,7 +145,7 @@ export function MedicationsPageClient({ minDateKey }: { minDateKey: string }) {
             return (
               <Card
                 key={log.id}
-                className={cn(isOverdue && "border-warning bg-warning/10")}
+                className={cn("border-0 shadow-none", isOverdue && "border border-warning bg-warning/10")}
               >
                 <div className="flex items-start gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
@@ -157,7 +157,7 @@ export function MedicationsPageClient({ minDateKey }: { minDateKey: string }) {
                       <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {log.medications.dosage} · {formatDateTime(log.scheduled_for)}
+                      {log.medications.dosage} · {formatTime(log.scheduled_for)}
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {getIntakeRelationLabel(log.medications.intake_relation)}

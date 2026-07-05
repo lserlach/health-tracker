@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter_Tight, Manrope } from "next/font/google";
-import { DecorBackground } from "@/components/layout/decor-background";
+import { MobileViewport } from "@/components/layout/mobile-viewport";
 import { ServiceWorkerRegister } from "@/components/notifications/service-worker-register";
 import "./globals.css";
 
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Здоровье",
+    title: "Дневник",
   },
   icons: {
     icon: [
@@ -46,11 +46,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className={`${interTight.variable} ${manrope.variable} h-full`}>
-      <body className="relative min-h-full antialiased">
-        <DecorBackground />
+    <html lang="ru" className={`${interTight.variable} ${manrope.variable} h-full bg-background`}>
+      <body className="min-h-full bg-background antialiased">
         <ServiceWorkerRegister />
-        {children}
+        <MobileViewport>{children}</MobileViewport>
       </body>
     </html>
   );

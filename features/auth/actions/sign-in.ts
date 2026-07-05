@@ -1,6 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import {
+  findAuthUserByLogin,
+  isAuthCredentialsConfigured,
+} from "@/features/auth/lib/auth-users";
 import { createClient } from "@/lib/supabase/server";
 import { ensureUserRecords } from "@/lib/supabase/auth-helpers";
 
@@ -16,7 +20,7 @@ function mapAuthError(message: string): string {
   }
 
   if (lower.includes("invalid login credentials")) {
-    return "Неверный логин или пароль. Проверьте пользователя в Supabase: email lserlach@gmail.com, password HealthTracker_Lserlach_2026";
+    return "Неверный логин или пароль.";
   }
 
   if (lower.includes("signup is disabled")) {
@@ -44,19 +48,13 @@ async function finalizeLogin(
 
 export async function signInWithLogin(login: string): Promise<SignInResult> {
   const normalizedLogin = login.trim().toLowerCase();
-  const allowedLogin = process.env.ALLOWED_LOGIN?.trim().toLowerCase();
-  const email = process.env.ALLOWED_EMAIL?.trim().toLowerCase();
-  const password = process.env.AUTH_PASSWORD;
+  const authUser = findAuthUserByLogin(normalizedLogin);
 
   if (!normalizedLogin) {
     return { error: "Введите логин." };
   }
 
-  if (!allowedLogin || !email || !password) {
-    return { error: "Вход не настроен. Проверьте .env.local." };
-  }
-
-  if (normalizedLogin !== allowedLogin) {
+  if (!isAuthCredentialsConfigured() || !authUser) {
     return { error: "Неверный логин." };
   }
 
@@ -80,8 +78,8 @@ export async function signInWithLogin(login: string): Promise<SignInResult> {
   }
 
   const { error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
+    email: authUser.email,
+    password: authUser.password,
   });
 
   if (!signInError) {
@@ -96,8 +94,8 @@ export async function signInWithLogin(login: string): Promise<SignInResult> {
     signInMessage.includes("user not found")
   ) {
     const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
+      email: authUser.email,
+      password: authUser.password,
       options: {
         data: { login: normalizedLogin },
       },
@@ -108,8 +106,8 @@ export async function signInWithLogin(login: string): Promise<SignInResult> {
     }
 
     const { error: retryError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+      email: authUser.email,
+      password: authUser.password,
     });
 
     if (!retryError) {

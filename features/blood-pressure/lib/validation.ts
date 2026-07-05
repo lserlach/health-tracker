@@ -2,8 +2,16 @@ import { z } from "zod";
 
 export const bloodPressureFormSchema = z.object({
   measured_at: z.string().min(1, "Укажите дату и время"),
-  systolic: z.number().min(50).max(300),
-  diastolic: z.number().min(30).max(200),
+  systolic: z
+    .number({ error: "Укажите верхнее" })
+    .refine((value) => !Number.isNaN(value), "Укажите верхнее")
+    .min(50, "Укажите верхнее")
+    .max(300, "Слишком большое значение"),
+  diastolic: z
+    .number({ error: "Укажите нижнее" })
+    .refine((value) => !Number.isNaN(value), "Укажите нижнее")
+    .min(30, "Укажите нижнее")
+    .max(200, "Слишком большое значение"),
   pulse: z.string().optional(),
 });
 
