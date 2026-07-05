@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Cookie, ForkKnife, Heartbeat, Pill, Scales } from "@phosphor-icons/react";
 import { saveBloodPressureLogAction } from "@/features/blood-pressure/actions/blood-pressure-actions";
@@ -26,10 +26,12 @@ import {
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { DatetimePickerField } from "@/components/ui/datetime-picker-field";
+import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
 import { Toast } from "@/components/ui/toast";
 import { toDatetimeLocalValue } from "@/lib/dates/format";
 import { cn } from "@/lib/utils/cn";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 
 type SheetType = "glucose" | "meal" | "medication" | "blood_pressure" | "weight" | null;
@@ -45,18 +47,23 @@ const actionButtonClassName = cn(
 
 export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuickActionsProps) {
   const router = useRouter();
+  const [, startHomeRefresh] = useTransition();
+  const inFlightMedIds = useRef(new Set<string>());
   const [activeSheet, setActiveSheet] = useState<SheetType>(null);
   const [localMedicationLogs, setLocalMedicationLogs] = useState(medicationLogs);
-  const [pendingMedId, setPendingMedId] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [medicationError, setMedicationError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(
     null,
   );
 
   useEffect(() => {
+    if (inFlightMedIds.current.size > 0) return;
     setLocalMedicationLogs(medicationLogs);
   }, [medicationLogs]);
 
   const weightForm = useForm<WeightFormValues>({
+    resolver: zodResolver(weightFormSchema),
     defaultValues: {
       measured_at: toDatetimeLocalValue(),
       weight: 0,
@@ -64,6 +71,7 @@ export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuick
   });
 
   const bpForm = useForm<BloodPressureFormValues>({
+    resolver: zodResolver(bloodPressureFormSchema),
     defaultValues: {
       measured_at: toDatetimeLocalValue(),
       systolic: Number.NaN,
@@ -74,6 +82,8 @@ export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuick
 
   function closeSheet() {
     setActiveSheet(null);
+    setFormError(null);
+    setMedicationError(null);
     weightForm.reset({ measured_at: toDatetimeLocalValue(), weight: 0 });
     bpForm.reset({
       measured_at: toDatetimeLocalValue(),
@@ -83,79 +93,79 @@ export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuick
     });
   }
 
-  function refreshHome() {
-    router.refresh();
+  function refreshHomeInBackground() {
+    startHomeRefresh(() => {
+      router.refresh();
+    });
   }
 
   async function handleGlucoseSubmit(values: GlucoseFormValues) {
-    const result = await saveGlucoseLogAction(values);
-    if (result.error) {
-      setToast({ message: result.error, variant: "error" });
-      return;
-    }
-    setToast({ message: "Сахар добавлен", variant: "success" });
     closeSheet();
-    refreshHome();
+    setToast({ message: "Сахар добавлен", variant: "success" });
+
+    void saveGlucoseLogAction(values).then((result) => {
+      if (result.error) {
+        setToast({ message: result.error, variant: "error" });
+        return;
+      }
+      refreshHomeInBackground();
+    });
   }
 
   async function handleMealSubmit(values: MealFormValues) {
-    const result = await saveMealLogAction(values);
-    if (result.error) {
-      setToast({ message: result.error, variant: "error" });
-      return;
-    }
+    closeSheet();
     setToast({
       message: "Еда добавлена. Напоминание о сахаре через 1 час.",
       variant: "success",
     });
-    closeSheet();
-    refreshHome();
+
+    void saveMealLogAction(values).then((result) => {
+      if (result.error) {
+        setToast({ message: result.error, variant: "error" });
+        return;
+      }
+      refreshHomeInBackground();
+    });
   }
 
   async function handleWeightSubmit(values: WeightFormValues) {
-    const parsed = weightFormSchema.safeParse(values);
-    if (!parsed.success) {
-      setToast({ message: "Проверьте введённые значения", variant: "error" });
-      return;
-    }
-
-    const result = await saveWeightLogAction(parsed.data);
-    if (result.error) {
-      setToast({ message: result.error, variant: "error" });
-      return;
-    }
-
-    setToast({ message: "Вес добавлен", variant: "success" });
+    setFormError(null);
     closeSheet();
-    refreshHome();
+    setToast({ message: "Вес добавлен", variant: "success" });
+
+    void saveWeightLogAction(values).then((result) => {
+      if (result.error) {
+        setToast({ message: result.error, variant: "error" });
+        return;
+      }
+      refreshHomeInBackground();
+    });
   }
 
   async function handleBloodPressureSubmit(values: BloodPressureFormValues) {
-    const parsed = bloodPressureFormSchema.safeParse(values);
-    if (!parsed.success) {
-      setToast({ message: "Проверьте введённые значения", variant: "error" });
-      return;
-    }
-
-    const result = await saveBloodPressureLogAction(parsed.data);
-    if (result.error) {
-      setToast({ message: result.error, variant: "error" });
-      return;
-    }
-
-    setToast({ message: "Давление добавлено", variant: "success" });
+    setFormError(null);
     closeSheet();
-    refreshHome();
+    setToast({ message: "Давление добавлено", variant: "success" });
+
+    void saveBloodPressureLogAction(values).then((result) => {
+      if (result.error) {
+        setToast({ message: result.error, variant: "error" });
+        return;
+      }
+      refreshHomeInBackground();
+    });
   }
 
   async function setMedicationStatus(
     log: MedicationLogWithMedication,
     status: MedicationLogWithMedication["status"],
   ) {
+    if (inFlightMedIds.current.has(log.id)) return;
+
     const previousLogs = localMedicationLogs;
     const takenAt = status === "taken" ? log.scheduled_for : null;
 
-    setPendingMedId(log.id);
+    inFlightMedIds.current.add(log.id);
     setLocalMedicationLogs((current) =>
       current.map((item) =>
         item.id === log.id ? { ...item, status, taken_at: takenAt } : item,
@@ -168,15 +178,15 @@ export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuick
       takenAt ?? undefined,
     );
 
-    setPendingMedId(null);
+    inFlightMedIds.current.delete(log.id);
 
     if (result.error) {
       setLocalMedicationLogs(previousLogs);
-      setToast({ message: result.error, variant: "error" });
+      setMedicationError(result.error);
       return;
     }
 
-    refreshHome();
+    setMedicationError(null);
   }
 
   function toggleMedicationTaken(log: MedicationLogWithMedication) {
@@ -242,6 +252,7 @@ export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuick
 
       <BottomSheet open={activeSheet === "weight"} title="Добавить вес" onClose={closeSheet}>
         <form className="space-y-4" onSubmit={weightForm.handleSubmit(handleWeightSubmit)}>
+          <FormError message={formError} />
           <Controller
             name="measured_at"
             control={weightForm.control}
@@ -250,6 +261,7 @@ export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuick
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
+                error={weightForm.formState.errors.measured_at?.message}
               />
             )}
           />
@@ -257,6 +269,7 @@ export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuick
             label="Вес, кг"
             type="number"
             step="0.1"
+            error={weightForm.formState.errors.weight?.message}
             {...weightForm.register("weight", { valueAsNumber: true })}
           />
           <Button type="submit" className="w-full">
@@ -267,6 +280,7 @@ export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuick
 
       <BottomSheet open={activeSheet === "blood_pressure"} title="Отметить давление" onClose={closeSheet}>
         <form className="space-y-4" onSubmit={bpForm.handleSubmit(handleBloodPressureSubmit)}>
+          <FormError message={formError} />
           <Controller
             name="measured_at"
             control={bpForm.control}
@@ -275,6 +289,7 @@ export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuick
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
+                error={bpForm.formState.errors.measured_at?.message}
               />
             )}
           />
@@ -288,6 +303,7 @@ export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuick
                   type="number"
                   inputMode="numeric"
                   placeholder="120"
+                  error={bpForm.formState.errors.systolic?.message}
                   ref={ref}
                   onBlur={onBlur}
                   value={Number.isNaN(value) ? "" : value}
@@ -307,6 +323,7 @@ export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuick
                   type="number"
                   inputMode="numeric"
                   placeholder="80"
+                  error={bpForm.formState.errors.diastolic?.message}
                   ref={ref}
                   onBlur={onBlur}
                   value={Number.isNaN(value) ? "" : value}
@@ -318,7 +335,12 @@ export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuick
               )}
             />
           </div>
-          <Input label="Пульс" type="number" {...bpForm.register("pulse")} />
+          <Input
+            label="Пульс"
+            type="number"
+            error={bpForm.formState.errors.pulse?.message}
+            {...bpForm.register("pulse")}
+          />
           <Button type="submit" className="w-full">
             Сохранить
           </Button>
@@ -329,13 +351,15 @@ export function HomeQuickActions({ medicationLogs, todayGlucoseLogs }: HomeQuick
         {localMedicationLogs.length === 0 ? (
           <p className="text-sm text-muted-foreground">На сегодня нет лекарств в расписании.</p>
         ) : (
-          <MedicationChecklist
+          <>
+            <FormError message={medicationError} className="mb-3" />
+            <MedicationChecklist
             logs={localMedicationLogs}
-            pendingLogId={pendingMedId}
             onToggleTaken={toggleMedicationTaken}
             onToggleSkipped={toggleMedicationSkipped}
             className="border-0 bg-transparent p-0 shadow-none"
           />
+          </>
         )}
       </BottomSheet>
 

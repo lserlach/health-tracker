@@ -1,7 +1,9 @@
 import { BloodPressurePageClient } from "@/features/blood-pressure/components/blood-pressure-page-client";
+import { getBloodPressureLogsForDayAction } from "@/features/blood-pressure/actions/blood-pressure-actions";
 import { getMinDateKeyForUser } from "@/lib/profile/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { toDateKey } from "@/lib/dates/day";
+import type { BloodPressureLog } from "@/types/database.types";
 
 export default async function BloodPressurePage() {
   const supabase = await createClient();
@@ -9,7 +11,17 @@ export default async function BloodPressurePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const minDateKey = user ? await getMinDateKeyForUser(supabase, user.id) : toDateKey(new Date());
+  const initialDateKey = toDateKey();
+  const minDateKey = user ? await getMinDateKeyForUser(supabase, user.id) : initialDateKey;
+  const initialDayLogs: BloodPressureLog[] = user
+    ? (await getBloodPressureLogsForDayAction(initialDateKey)).data ?? []
+    : [];
 
-  return <BloodPressurePageClient minDateKey={minDateKey} />;
+  return (
+    <BloodPressurePageClient
+      minDateKey={minDateKey}
+      initialDateKey={initialDateKey}
+      initialDayLogs={initialDayLogs}
+    />
+  );
 }

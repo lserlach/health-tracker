@@ -10,6 +10,7 @@ import {
   glucoseFormSchema,
   type GlucoseFormValues,
 } from "@/features/glucose/lib/validation";
+import { MEAL_SLOT_ONCE_PER_DAY_ERROR } from "@/features/glucose/lib/meal-slots";
 import { calcMinutesAfterMeal } from "@/features/glucose/lib/pending-meal-glucose";
 import type { GlucoseLog, MealLog } from "@/types/database.types";
 
@@ -47,6 +48,42 @@ async function assertSingleFastingPerDay(
   return {};
 }
 
+async function assertSingleMealSlotPerDay(
+  supabase: Awaited<ReturnType<typeof getAuthenticatedUser>>["supabase"],
+  userId: string,
+  measuredAt: Date,
+  mealSlot: NonNullable<GlucoseFormValues["meal_slot"]>,
+  excludeLogId?: string,
+) {
+  const { start, end } = getDayRange(measuredAt);
+
+  let query = supabase
+    .from("glucose_logs")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("measurement_type", "after_meal")
+    .eq("meal_slot", mealSlot)
+    .gte("measured_at", start)
+    .lte("measured_at", end)
+    .limit(1);
+
+  if (excludeLogId) {
+    query = query.neq("id", excludeLogId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    return { error: formatSupabaseError(error) };
+  }
+
+  if ((data ?? []).length > 0) {
+    return { error: MEAL_SLOT_ONCE_PER_DAY_ERROR };
+  }
+
+  return {};
+}
+
 function mapForm(
   values: GlucoseFormValues,
   userId: string,
@@ -63,6 +100,8 @@ function mapForm(
     measured_at: measuredAt.toISOString(),
     value: values.value,
     measurement_type: values.measurement_type,
+    meal_slot:
+      values.measurement_type === "after_meal" ? values.meal_slot ?? null : null,
     meal_text:
       values.measurement_type === "after_meal" ? values.meal_text?.trim() || null : null,
     minutes_after_meal: minutesAfterMeal,
@@ -74,24 +113,30 @@ async function filterPendingMealLogs(
   userId: string,
   meals: MealLog[],
 ) {
-  const pending: MealLog[] = [];
-
-  for (const meal of meals) {
-    const { count, error } = await supabase
-      .from("glucose_logs")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("measurement_type", "after_meal")
-      .gte("measured_at", meal.eaten_at);
-
-    if (error) {
-      return { error: formatSupabaseError(error), data: [] as MealLog[] };
-    }
-
-    if ((count ?? 0) === 0) {
-      pending.push(meal);
-    }
+  if (meals.length === 0) {
+    return { data: [] as MealLog[] };
   }
+
+  const earliestMealAt = meals.reduce(
+    (earliest, meal) => (meal.eaten_at < earliest ? meal.eaten_at : earliest),
+    meals[0].eaten_at,
+  );
+
+  const { data, error } = await supabase
+    .from("glucose_logs")
+    .select("measured_at")
+    .eq("user_id", userId)
+    .eq("measurement_type", "after_meal")
+    .gte("measured_at", earliestMealAt);
+
+  if (error) {
+    return { error: formatSupabaseError(error), data: [] as MealLog[] };
+  }
+
+  const afterMealTimes = (data ?? []).map((log) => log.measured_at);
+  const pending = meals.filter(
+    (meal) => !afterMealTimes.some((measuredAt) => measuredAt >= meal.eaten_at),
+  );
 
   return { data: pending };
 }
@@ -202,6 +247,19 @@ export async function saveGlucoseLogAction(
     );
     if (fastingError.error) {
       return { error: fastingError.error };
+    }
+  }
+
+  if (parsed.data.measurement_type === "after_meal" && parsed.data.meal_slot) {
+    const mealSlotError = await assertSingleMealSlotPerDay(
+      supabase,
+      user.id,
+      fromDatetimeLocalValue(parsed.data.measured_at),
+      parsed.data.meal_slot,
+      id,
+    );
+    if (mealSlotError.error) {
+      return { error: mealSlotError.error };
     }
   }
 

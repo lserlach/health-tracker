@@ -58,7 +58,7 @@ export function LoginForm() {
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-soft text-primary">
           <UserCircle size={28} weight="regular" />
         </div>
-        <h1 className="text-2xl font-semibold text-foreground">Дневник здоровья</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Lurea</h1>
         <p className="mt-2 text-sm text-muted-foreground">Вход по логину</p>
       </div>
 

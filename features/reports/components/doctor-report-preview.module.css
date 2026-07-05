@@ -1,0 +1,228 @@
+.canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  min-height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  box-sizing: border-box;
+  padding: 32pt;
+  background: #ffffff;
+  color: #342e45;
+  font-family: var(--font-manrope), system-ui, sans-serif;
+  font-size: 10pt;
+  line-height: 1.4;
+  box-shadow: 0 12px 40px rgba(52, 46, 69, 0.12);
+  flex-shrink: 0;
+}
+
+.pageLandscape {
+  width: 297mm;
+  min-height: 210mm;
+  padding: 18pt 20pt;
+}
+
+.pageLandscape .title {
+  margin-bottom: 2pt;
+  font-size: 16pt;
+}
+
+.pageLandscape .subtitle {
+  margin-bottom: 10pt;
+  font-size: 10pt;
+}
+
+.pageLandscape .footer {
+  margin-top: 8pt;
+  font-size: 8pt;
+}
+
+.title {
+  margin: 0 0 4pt;
+  font-family: var(--font-heading), system-ui, sans-serif;
+  font-size: 18pt;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.subtitle {
+  margin: 0 0 16pt;
+  font-size: 11pt;
+  line-height: 1.4;
+  color: #6f6985;
+}
+
+.sectionTitle {
+  margin: 16pt 0 8pt;
+  font-family: var(--font-heading), system-ui, sans-serif;
+  font-size: 12pt;
+  font-weight: 700;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+}
+
+.tableGlucoseLandscape {
+  table-layout: fixed;
+  width: 100%;
+  font-size: 7.5pt;
+}
+
+.tableGroupTitle {
+  padding: 4pt 2pt;
+  font-weight: 700;
+  text-align: center;
+  font-size: 7pt;
+}
+
+.colDateGlucose {
+  width: 8%;
+  white-space: nowrap;
+}
+
+.colSugarHeader {
+  width: 5%;
+  text-align: center;
+  font-size: 6pt;
+  line-height: 1.2;
+  padding: 4pt 1pt;
+  white-space: normal;
+}
+
+.colSugar {
+  width: 5%;
+  text-align: center;
+  white-space: nowrap;
+  font-size: 7pt;
+  padding: 4pt 1pt;
+}
+
+.colSugarCell {
+  width: 5%;
+  text-align: center;
+  white-space: nowrap;
+  font-size: 7pt;
+  padding: 4pt 1pt;
+}
+
+.colFood {
+  width: 14.4%;
+  font-size: 6.5pt;
+  line-height: 1.25;
+  padding: 4pt 2pt;
+}
+
+.foodCell {
+  font-size: 6.5pt;
+  line-height: 1.25;
+  color: #342e45;
+  word-break: break-word;
+  padding: 4pt 2pt;
+  vertical-align: top;
+}
+
+.tableHead {
+  background: #eeeaff;
+}
+
+.tableHead th {
+  padding: 4pt 2pt;
+  font-weight: 700;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.tableRow td {
+  padding: 4pt 2pt;
+  border-bottom: 1px solid #ebe6f8;
+  vertical-align: top;
+}
+
+.colDate {
+  width: 22%;
+}
+
+.colMd {
+  width: 24%;
+}
+
+.colSm {
+  width: 18%;
+}
+
+.colLg {
+  width: 34%;
+}
+
+.footer {
+  margin: 12pt 0 0;
+  font-size: 9pt;
+  color: #6f6985;
+}
+
+.emptyLine {
+  margin: 0;
+  font-size: 10pt;
+}
+
+.glucoseDayCell {
+  display: flex;
+  flex-direction: column;
+  gap: 8pt;
+}
+
+.glucoseValueLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4pt;
+  font-size: 10pt;
+  line-height: 1.4;
+}
+
+.glucoseLabel {
+  font-weight: 700;
+}
+
+.glucoseMealLine {
+  margin-top: 2pt;
+  font-size: 9pt;
+  line-height: 1.35;
+  color: #6f6985;
+}
+
+.glucoseHigh {
+  color: #c2410c;
+  font-weight: 700;
+}
+
+@media print {
+  .canvas {
+    gap: 0;
+    padding: 0;
+  }
+
+  .page {
+    box-shadow: none;
+    page-break-after: always;
+  }
+
+  .pageLandscape {
+    width: 297mm;
+    min-height: 210mm;
+  }
+
+  .page:last-child {
+    page-break-after: auto;
+  }
+}

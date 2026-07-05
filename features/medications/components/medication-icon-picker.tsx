@@ -30,10 +30,14 @@ export function MedicationIconPicker({
   const activeColor = MEDICATION_COLOR_OPTIONS.find((option) => option.value === color);
 
   return (
-    <div className="flex w-full flex-col gap-3">
-      <div className="flex w-full flex-col gap-1.5">
+    <div className="flex w-full min-w-0 max-w-full flex-col gap-3">
+      <div className="flex w-full min-w-0 flex-col gap-1.5">
         <span className="text-sm font-semibold text-muted-foreground">Иконка</span>
-        <div className="grid grid-cols-5 gap-1.5" role="radiogroup" aria-label="Иконка лекарства">
+        <div
+          className="grid min-w-0 grid-cols-5 gap-1.5"
+          role="radiogroup"
+          aria-label="Иконка лекарства"
+        >
           {MEDICATION_ICON_OPTIONS.map((option) => {
             const Icon = option.icon;
             const isActive = icon === option.value;
@@ -46,7 +50,7 @@ export function MedicationIconPicker({
                 aria-checked={isActive}
                 aria-label={option.label}
                 className={cn(
-                  "flex min-h-[4.5rem] flex-col items-center justify-center gap-1 rounded-(--radius-button) px-1 py-2 transition-colors",
+                  "flex min-h-[4.5rem] min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-(--radius-button) px-0.5 py-2 transition-colors",
                   isActive
                     ? cn(activeColor?.iconClass, "shadow-sm ring-2 ring-current/20")
                     : "bg-primary-soft/45 text-muted-foreground hover:bg-primary-soft/70 hover:text-foreground",
@@ -54,7 +58,9 @@ export function MedicationIconPicker({
                 onClick={() => onIconChange(option.value)}
               >
                 <Icon size={22} weight={isActive ? "fill" : "regular"} aria-hidden />
-                <span className="text-[10px] font-medium leading-tight">{option.label}</span>
+                <span className="w-full truncate px-0.5 text-center text-[10px] font-medium leading-tight">
+                  {option.label}
+                </span>
               </button>
             );
           })}
@@ -62,9 +68,13 @@ export function MedicationIconPicker({
         {iconError ? <p className="text-sm text-danger">{iconError}</p> : null}
       </div>
 
-      <div className="flex w-full flex-col gap-1.5">
+      <div className="flex w-full min-w-0 flex-col gap-1.5">
         <span className="text-sm font-semibold text-muted-foreground">Цвет</span>
-        <div className="flex items-center gap-2" role="radiogroup" aria-label="Цвет иконки лекарства">
+        <div
+          className="flex min-w-0 flex-wrap items-center gap-2"
+          role="radiogroup"
+          aria-label="Цвет иконки лекарства"
+        >
           {MEDICATION_COLOR_OPTIONS.map((option) => {
             const isActive = color === option.value;
 

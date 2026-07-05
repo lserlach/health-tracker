@@ -1,5 +1,6 @@
 "use client";
 
+import { getMealSlotLabel } from "@/features/glucose/lib/meal-slots";
 import { formatTime } from "@/lib/dates/format";
 import { cn } from "@/lib/utils/cn";
 import type { GlucoseLog } from "@/types/database.types";
@@ -22,6 +23,11 @@ export function GlucoseLogCard({ log, onEdit, onDelete }: GlucoseLogCardProps) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <GlucoseMeasurementBadge type={log.measurement_type} />
+            {log.measurement_type === "after_meal" && log.meal_slot ? (
+              <span className="text-xs font-medium text-foreground">
+                {getMealSlotLabel(log.meal_slot)}
+              </span>
+            ) : null}
             <span className="text-xs text-muted-foreground">{formatTime(log.measured_at)}</span>
           </div>
         </div>

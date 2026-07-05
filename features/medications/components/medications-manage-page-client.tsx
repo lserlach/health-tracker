@@ -53,27 +53,30 @@ export function MedicationsManagePageClient() {
   }
 
   async function onSubmit(values: MedicationFormValues) {
-    const result = await saveMedicationAction(values, editing?.id);
+    const currentEditing = editing;
+    setSheetOpen(false);
+
+    const result = await saveMedicationAction(values, currentEditing?.id);
     if (result.error) {
-      setToast({ message: result.error, variant: "error" });
-      return;
+      setEditing(currentEditing);
+      setSheetOpen(true);
+      return { error: result.error };
     }
 
     if (result.data) {
       setMedications((current) =>
-        editing
+        currentEditing
           ? current.map((medication) =>
-              medication.id === editing.id ? result.data! : medication,
+              medication.id === currentEditing.id ? result.data! : medication,
             )
           : [result.data, ...current],
       );
     }
 
     setToast({
-      message: editing ? "Лекарство обновлено" : "Лекарство добавлено",
+      message: currentEditing ? "Лекарство обновлено" : "Лекарство добавлено",
       variant: "success",
     });
-    setSheetOpen(false);
   }
 
   return (
@@ -95,7 +98,6 @@ export function MedicationsManagePageClient() {
         <EmptyState
           title="Лекарств пока нет"
           description="Добавьте первое лекарство с временем приёма."
-          action={<Button onClick={() => openSheet()}>Добавить</Button>}
         />
       ) : (
         <div className="space-y-3">

@@ -70,6 +70,30 @@ select {
   letter-spacing: inherit;
 }
 
+/* iOS Safari auto-zooms focused inputs below 16px — keep forms at readable size without zoom. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  /* Native date/time pickers have a large intrinsic min-width on iOS. */
+  input[type="time"],
+  input[type="date"],
+  input[type="datetime-local"] {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  input[type="time"]::-webkit-date-and-time-value,
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="datetime-local"]::-webkit-date-and-time-value {
+    min-width: 0;
+    text-align: left;
+  }
+}
+
 h1,
 h2,
 h3,

@@ -8,6 +8,13 @@ export type MedicationLogStatus = "pending" | "taken" | "skipped";
 
 export type GlucoseMeasurementType = "fasting" | "after_meal";
 
+export type GlucoseMealSlot =
+  | "breakfast"
+  | "second_breakfast"
+  | "lunch"
+  | "afternoon_snack"
+  | "dinner";
+
 export interface Profile {
   id: string;
   email: string;
@@ -106,6 +113,7 @@ export interface GlucoseLog {
   measured_at: string;
   value: number;
   measurement_type: GlucoseMeasurementType;
+  meal_slot: GlucoseMealSlot | null;
   meal_text: string | null;
   minutes_after_meal: number | null;
   note: string | null;

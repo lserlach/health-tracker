@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { toDateKey } from "@/lib/dates/day";
 import { getDatetimeLocalDatePart } from "@/lib/dates/format";
+import { GLUCOSE_MEAL_SLOTS } from "@/features/glucose/lib/meal-slots";
 import type { GlucoseLog, GlucoseMeasurementType } from "@/types/database.types";
 
 export const FASTING_ONCE_PER_DAY_ERROR = "Натощак можно записать только один раз в день";
@@ -51,24 +52,45 @@ export function serializeMealItems(items: string[]) {
   return items.map((item) => item.trim()).filter(Boolean).join(", ");
 }
 
-export const glucoseFormSchema = z.object({
-  value: z
-    .number({ error: "Укажите значение" })
-    .refine((value) => !Number.isNaN(value), "Укажите значение")
-    .min(1, "Укажите значение")
-    .max(30, "Слишком большое значение"),
-  measured_at: z.string().min(1, "Укажите дату и время"),
-  measurement_type: z.enum(["fasting", "after_meal"]),
-  meal_text: z.string().optional(),
-}).superRefine((data, ctx) => {
-  if (data.measurement_type === "after_meal" && !serializeMealItems(parseMealItems(data.meal_text ?? ""))) {
-    ctx.addIssue({
-      code: "custom",
-      message: "Укажите, что ели",
-      path: ["meal_text"],
-    });
-  }
-});
+const mealSlotSchema = z.enum([
+  "breakfast",
+  "second_breakfast",
+  "lunch",
+  "afternoon_snack",
+  "dinner",
+]);
+
+export const glucoseFormSchema = z
+  .object({
+    value: z
+      .number({ error: "Укажите значение" })
+      .refine((value) => !Number.isNaN(value), "Укажите значение")
+      .min(1, "Укажите значение")
+      .max(30, "Слишком большое значение"),
+    measured_at: z.string().min(1, "Укажите дату и время"),
+    measurement_type: z.enum(["fasting", "after_meal"]),
+    meal_slot: mealSlotSchema.nullable().optional(),
+    meal_text: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.measurement_type === "after_meal") {
+      if (!data.meal_slot || !GLUCOSE_MEAL_SLOTS.includes(data.meal_slot)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Выберите приём пищи",
+          path: ["meal_slot"],
+        });
+      }
+
+      if (!serializeMealItems(parseMealItems(data.meal_text ?? ""))) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Укажите, что ели",
+          path: ["meal_text"],
+        });
+      }
+    }
+  });
 
 export type GlucoseFormValues = z.infer<typeof glucoseFormSchema>;
 

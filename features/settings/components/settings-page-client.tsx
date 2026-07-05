@@ -27,6 +27,7 @@ import { SettingsTabs, type SettingsTab } from "@/features/settings/components/s
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Toast } from "@/components/ui/toast";
@@ -117,6 +118,7 @@ export function SettingsPageClient({
   initialProfile,
   initialSettings,
 }: SettingsPageClientProps) {
+  const [formSubmitError, setFormSubmitError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(
     null,
   );
@@ -126,6 +128,7 @@ export function SettingsPageClient({
     null,
   );
   const [timesEditorDraft, setTimesEditorDraft] = useState<string[] | null>(null);
+  const [timesEditorError, setTimesEditorError] = useState<string | null>(null);
   const pushSupported = getPushSupportStatus();
 
   const {
@@ -134,8 +137,9 @@ export function SettingsPageClient({
     control,
     watch,
     setValue,
+    getValues,
     trigger,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<SettingsFormValues>({
     defaultValues: profileToFormValues(initialProfile, initialSettings),
     resolver: zodResolver(settingsFormSchema),
@@ -146,6 +150,7 @@ export function SettingsPageClient({
 
   function openTimesEditor(sectionName: NotificationTimesFieldName) {
     setTimesEditorDraft([...watch(sectionName)]);
+    setTimesEditorError(null);
     setTimesEditorSection(sectionName);
   }
 
@@ -155,6 +160,7 @@ export function SettingsPageClient({
     }
     setTimesEditorSection(null);
     setTimesEditorDraft(null);
+    setTimesEditorError(null);
   }
 
   async function saveTimesEditor() {
@@ -162,22 +168,22 @@ export function SettingsPageClient({
 
     const isValid = await trigger(timesEditorSection);
     if (!isValid) {
-      setToast({
-        message: DUPLICATE_NOTIFICATION_TIME_MESSAGE,
-        variant: "error",
-      });
+      setTimesEditorError(DUPLICATE_NOTIFICATION_TIME_MESSAGE);
       return;
     }
 
+    setTimesEditorError(null);
     setTimesEditorSection(null);
     setTimesEditorDraft(null);
   }
 
   async function onSubmit(values: SettingsFormValues) {
+    setFormSubmitError(null);
+
     if (values.notifications_enabled) {
       const subscribeResult = await subscribeToPushNotifications();
       if (subscribeResult.error) {
-        setToast({ message: subscribeResult.error, variant: "error" });
+        setFormSubmitError(subscribeResult.error);
         return;
       }
     } else {
@@ -186,7 +192,7 @@ export function SettingsPageClient({
 
     const result = await saveSettingsAction(values);
     if (result.error) {
-      setToast({ message: result.error, variant: "error" });
+      setFormSubmitError(result.error);
       return;
     }
 
@@ -194,31 +200,47 @@ export function SettingsPageClient({
   }
 
   async function handleNotificationsToggle(checked: boolean) {
-    if (checked) {
-      if (!getPushSupportStatus()) {
-        setToast({ message: "Push-уведомления не поддерживаются в этом браузере", variant: "error" });
-        return;
-      }
+    const previousEnabled = getValues("notifications_enabled");
+    const previousNotifyGlucose = getValues("notify_glucose");
+    const previousNotifyMedications = getValues("notify_medications");
+    const previousNotifyWeight = getValues("notify_weight");
+    const previousNotifyBloodPressure = getValues("notify_blood_pressure");
 
-      const result = await subscribeToPushNotifications();
-      if (result.error) {
-        setToast({ message: result.error, variant: "error" });
-        return;
-      }
-    } else {
-      await unsubscribeFromPushNotifications();
+    setValue("notifications_enabled", checked, { shouldDirty: true });
+
+    if (!checked) {
       setValue("notify_glucose", false);
       setValue("notify_medications", false);
       setValue("notify_weight", false);
       setValue("notify_blood_pressure", false);
-    }
-
-    if (!checked) {
       setTimesEditorSection(null);
       setTimesEditorDraft(null);
     }
 
-    setValue("notifications_enabled", checked, { shouldDirty: true });
+    try {
+      if (checked) {
+        if (!pushSupported) {
+          throw new Error("Push-уведомления не поддерживаются в этом браузере");
+        }
+
+        const result = await subscribeToPushNotifications();
+        if (result.error) {
+          throw new Error(result.error);
+        }
+      } else {
+        await unsubscribeFromPushNotifications();
+      }
+    } catch (error) {
+      setValue("notifications_enabled", previousEnabled, { shouldDirty: true });
+      setValue("notify_glucose", previousNotifyGlucose);
+      setValue("notify_medications", previousNotifyMedications);
+      setValue("notify_weight", previousNotifyWeight);
+      setValue("notify_blood_pressure", previousNotifyBloodPressure);
+      setToast({
+        message: error instanceof Error ? error.message : "Не удалось изменить уведомления",
+        variant: "error",
+      });
+    }
   }
 
   async function handleTestPushNotification() {
@@ -249,11 +271,10 @@ export function SettingsPageClient({
 
       <form
         className="space-y-6"
-        onSubmit={handleSubmit(onSubmit, (errors) => {
-          setToast({
-            message: getFirstFormErrorMessage(errors) ?? "Проверьте введённые значения",
-            variant: "error",
-          });
+        onSubmit={handleSubmit(onSubmit, (fieldErrors) => {
+          setFormSubmitError(
+            getFirstFormErrorMessage(fieldErrors) ?? "Проверьте введённые значения",
+          );
         })}
       >
         {activeTab === "profile" ? (
@@ -407,6 +428,8 @@ export function SettingsPageClient({
           </Card>
         ) : null}
 
+        <FormError message={formSubmitError} />
+
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? "Сохраняем..." : "Сохранить"}
         </Button>
@@ -429,6 +452,7 @@ export function SettingsPageClient({
             subtitle={section.reminderSubtitle}
             onClose={cancelTimesEditor}
           >
+            <FormError message={timesEditorError} className="mb-4" />
             <NotificationTimesEditor
               control={control}
               register={register}

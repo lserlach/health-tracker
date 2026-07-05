@@ -1,11 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Дневник здоровья">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Lurea">
+  <rect width="512" height="512" rx="112" fill="#FFFFFF" />
+
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#A992FF"/>
-      <stop offset="100%" stop-color="#9279FF"/>
-    </linearGradient>
+    <mask id="heart-cutout">
+      <rect width="512" height="512" fill="white" />
+      <path
+        fill="black"
+        d="M256 346 C176 284 148 238 148 206 C148 176 172 154 198 154 C220 154 236 170 256 192 C276 170 292 154 314 154 C340 154 364 176 364 206 C364 238 336 284 256 346 Z"
+      />
+    </mask>
   </defs>
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <path fill="#ffffff" d="M256 392c-72-48-120-92-120-152 0-44 32-76 76-76 28 0 44 12 44 12s16-12 44-12c44 0 76 32 76 76 0 60-48 104-120 152z"/>
-  <circle cx="256" cy="176" r="18" fill="#EEEAFF"/>
+
+  <g mask="url(#heart-cutout)">
+    <path
+      fill="#9279FF"
+      d="M104 236 C104 124 168 68 256 68 C344 68 408 124 408 236 L408 202 C408 168 348 148 256 148 C164 148 104 168 104 202 Z"
+    />
+    <path
+      fill="#9279FF"
+      d="M104 308 C168 352 344 352 408 308 L408 424 C408 452 348 472 256 472 C164 472 104 452 104 424 Z"
+    />
+  </g>
 </svg>

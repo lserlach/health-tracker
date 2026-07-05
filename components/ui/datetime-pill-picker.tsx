@@ -24,7 +24,7 @@ const pillClassName =
   "rounded-full bg-primary-soft/45 px-2.5 py-1 text-sm font-medium text-primary transition-colors hover:bg-primary-soft/65";
 
 const inputClassName =
-  "min-h-11 w-full rounded-(--radius-button) border-0 bg-primary-soft/30 px-3 text-sm text-field-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30";
+  "min-h-11 w-full rounded-(--radius-button) border-0 bg-primary-soft/30 px-3 text-base text-field-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 md:text-sm";
 
 export function DatetimePillPicker({
   value,

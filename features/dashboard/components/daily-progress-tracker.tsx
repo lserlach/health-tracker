@@ -1,11 +1,10 @@
 "use client";
 
-import { Cookie, ForkKnife, Heartbeat, Pill, Scales, type Icon } from "@phosphor-icons/react";
+import { Cookie, Heartbeat, Pill, Scales, type Icon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils/cn";
 
 export interface DailyProgressStatus {
   glucose: boolean;
-  meal: boolean;
   medication: boolean;
   bloodPressure: boolean;
   weight: boolean;
@@ -25,7 +24,6 @@ const trackerItems: {
   { key: "bloodPressure", label: "Давление", icon: Heartbeat },
   { key: "medication", label: "Лекарства", icon: Pill },
   { key: "weight", label: "Вес", icon: Scales },
-  { key: "meal", label: "Еда", icon: ForkKnife },
 ];
 
 export function DailyProgressTracker({ status, className }: DailyProgressTrackerProps) {

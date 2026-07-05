@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter_Tight, Manrope } from "next/font/google";
-import { MobileViewport } from "@/components/layout/mobile-viewport";
+import { MobileViewportShell } from "@/components/layout/mobile-viewport-shell";
 import { ServiceWorkerRegister } from "@/components/notifications/service-worker-register";
 import "./globals.css";
 
@@ -15,13 +15,13 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Дневник здоровья",
+  title: "Lurea",
   description: "Личный дневник здоровья при беременности",
-  applicationName: "Дневник здоровья",
+  applicationName: "Lurea",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Дневник",
+    title: "Lurea",
   },
   icons: {
     icon: [
@@ -49,7 +49,7 @@ export default function RootLayout({
     <html lang="ru" className={`${interTight.variable} ${manrope.variable} h-full bg-background`}>
       <body className="h-dvh overflow-hidden bg-background antialiased md:h-auto md:min-h-full md:overflow-visible">
         <ServiceWorkerRegister />
-        <MobileViewport>{children}</MobileViewport>
+        <MobileViewportShell>{children}</MobileViewportShell>
       </body>
     </html>
   );

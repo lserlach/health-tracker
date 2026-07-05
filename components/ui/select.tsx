@@ -14,7 +14,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const selectId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
 
     return (
-      <div className="flex w-full flex-col gap-1.5">
+      <div className="flex w-full min-w-0 max-w-full flex-col gap-1.5">
         {label ? (
           <label htmlFor={selectId} className="text-sm font-semibold text-muted-foreground">
             {label}
@@ -24,7 +24,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={selectId}
           className={cn(
-            "min-h-12 w-full rounded-(--radius-button) border-0 bg-background px-4 text-sm text-field-foreground",
+            "min-h-12 w-full min-w-0 max-w-full rounded-(--radius-button) border-0 bg-background px-4 text-base text-field-foreground md:text-sm",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
             error && "ring-2 ring-danger/30",
             className,

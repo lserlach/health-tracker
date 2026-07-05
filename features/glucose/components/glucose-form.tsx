@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
+import {
+  getDefaultMealSlot,
+  getTakenMealSlotsForMeasuredAt,
+} from "@/features/glucose/lib/meal-slots";
 import {
   glucoseFormSchema,
   isFastingTakenForMeasuredAt,
@@ -9,11 +14,13 @@ import {
   type GlucoseFormValues,
 } from "@/features/glucose/lib/validation";
 import { MealItemsInput } from "@/features/glucose/components/meal-items-input";
+import { MealSlotPicker } from "@/features/glucose/components/meal-slot-picker";
 import { MeasurementTypeTabs } from "@/features/glucose/components/measurement-type-tabs";
 import { toDatetimeLocalValue } from "@/lib/dates/format";
 import type { GlucoseLog, MealLog } from "@/types/database.types";
 import { Button } from "@/components/ui/button";
 import { DatetimeHeaderPicker } from "@/components/ui/datetime-header-picker";
+import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
 
 interface GlucoseFormProps {
@@ -22,7 +29,7 @@ interface GlucoseFormProps {
   defaultMeasurementType?: GlucoseFormValues["measurement_type"];
   defaultMeasuredAt?: string;
   dayLogs?: GlucoseLog[];
-  onSubmit: (values: GlucoseFormValues) => Promise<void>;
+  onSubmit: (values: GlucoseFormValues) => Promise<{ error?: string } | void>;
   onCancel: () => void;
 }
 
@@ -38,30 +45,40 @@ function getDefaultValues(
       value: initialData.value,
       measured_at: toDatetimeLocalValue(new Date(initialData.measured_at)),
       measurement_type: normalizeFormMeasurementType(initialData.measurement_type),
+      meal_slot: initialData.meal_slot,
       meal_text: initialData.meal_text ?? "",
     };
   }
 
+  const measuredAt = defaultMeasuredAt ?? toDatetimeLocalValue();
+
   if (pendingMeal) {
     const remindAt = new Date(pendingMeal.remind_at);
     const now = new Date();
+    const pendingMeasuredAt = toDatetimeLocalValue(now > remindAt ? now : remindAt);
 
     return {
       value: Number.NaN,
-      measured_at: toDatetimeLocalValue(now > remindAt ? now : remindAt),
+      measured_at: pendingMeasuredAt,
       measurement_type: "after_meal",
+      meal_slot: getDefaultMealSlot(dayLogs ?? [], pendingMeasuredAt),
       meal_text: pendingMeal.meal_text,
     };
   }
 
-  const measuredAt = defaultMeasuredAt ?? toDatetimeLocalValue();
   const fastingTaken = isFastingTakenForMeasuredAt(dayLogs ?? [], measuredAt);
   const preferredType = defaultMeasurementType ?? "fasting";
+  const measurementType =
+    fastingTaken && preferredType === "fasting" ? "after_meal" : preferredType;
 
   return {
     value: Number.NaN,
     measured_at: measuredAt,
-    measurement_type: fastingTaken && preferredType === "fasting" ? "after_meal" : preferredType,
+    measurement_type: measurementType,
+    meal_slot:
+      measurementType === "after_meal"
+        ? getDefaultMealSlot(dayLogs ?? [], measuredAt)
+        : null,
     meal_text: "",
   };
 }
@@ -75,6 +92,7 @@ export function GlucoseForm({
   onSubmit,
   onCancel,
 }: GlucoseFormProps) {
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const {
     handleSubmit,
     watch,
@@ -83,6 +101,7 @@ export function GlucoseForm({
     control,
     formState: { errors, isSubmitting },
   } = useForm<GlucoseFormValues>({
+    resolver: zodResolver(glucoseFormSchema),
     defaultValues: getDefaultValues(
       initialData,
       pendingMeal,
@@ -102,11 +121,17 @@ export function GlucoseForm({
         dayLogs,
       ),
     );
+    setSubmitError(null);
   }, [initialData, pendingMeal, defaultMeasurementType, defaultMeasuredAt, dayLogs, reset]);
 
   const measurementType = watch("measurement_type");
   const measuredAt = watch("measured_at");
+  const mealSlot = watch("meal_slot");
   const fastingDisabled = isFastingTakenForMeasuredAt(dayLogs ?? [], measuredAt, initialData?.id);
+  const takenMealSlots = useMemo(
+    () => getTakenMealSlotsForMeasuredAt(dayLogs ?? [], measuredAt, initialData?.id),
+    [dayLogs, measuredAt, initialData?.id],
+  );
 
   useEffect(() => {
     if (fastingDisabled && measurementType === "fasting") {
@@ -114,16 +139,28 @@ export function GlucoseForm({
     }
   }, [fastingDisabled, measurementType, setValue]);
 
-  async function handleFormSubmit(values: GlucoseFormValues) {
-    const parsed = glucoseFormSchema.safeParse(values);
-    if (!parsed.success) {
+  useEffect(() => {
+    if (measurementType !== "after_meal") {
+      setValue("meal_slot", null);
       return;
     }
-    await onSubmit(parsed.data);
+
+    if (!mealSlot || takenMealSlots.has(mealSlot)) {
+      setValue("meal_slot", getDefaultMealSlot(dayLogs ?? [], measuredAt, initialData?.id));
+    }
+  }, [measurementType, mealSlot, takenMealSlots, dayLogs, measuredAt, initialData?.id, setValue]);
+
+  async function handleFormSubmit(values: GlucoseFormValues) {
+    setSubmitError(null);
+    const result = await onSubmit(values);
+    if (result?.error) {
+      setSubmitError(result.error);
+    }
   }
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit(handleFormSubmit)}>
+      <FormError message={submitError} />
       <div className="mb-2 pr-12">
         <h2 className="font-heading text-xl font-semibold leading-tight text-foreground">
           {initialData ? "Редактировать" : pendingMeal ? "Измерить сахар" : "Добавить сахар"}
@@ -156,6 +193,21 @@ export function GlucoseForm({
           )}
         />
       )}
+
+      {measurementType === "after_meal" ? (
+        <Controller
+          name="meal_slot"
+          control={control}
+          render={({ field }) => (
+            <MealSlotPicker
+              value={field.value}
+              onChange={field.onChange}
+              disabledSlots={takenMealSlots}
+              error={errors.meal_slot?.message}
+            />
+          )}
+        />
+      ) : null}
 
       <Controller
         name="value"

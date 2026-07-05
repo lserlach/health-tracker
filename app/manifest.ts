@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Дневник здоровья",
-    short_name: "Дневник",
+    name: "Lurea",
+    short_name: "Lurea",
     description: "Личный дневник здоровья при беременности",
     start_url: "/",
     display: "standalone",

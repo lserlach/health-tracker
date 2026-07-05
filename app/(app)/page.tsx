@@ -76,7 +76,6 @@ export default async function HomePage() {
 
   const dailyProgress = {
     glucose: glucoseLogs.length > 0,
-    meal: mealLogs.length > 0,
     medication:
       medicationLogs.length > 0 &&
       medicationLogs.every((log) => log.status === "taken" || log.status === "skipped"),

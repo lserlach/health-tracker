@@ -1,0 +1,91 @@
+import { StyleSheet } from "@react-pdf/renderer";
+
+export const reportPdfStyles = StyleSheet.create({
+  page: {
+    padding: 32,
+    fontFamily: "Roboto",
+    fontSize: 10,
+    color: "#342e45",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 700,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 11,
+    color: "#6f6985",
+    marginBottom: 16,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#eeeaff",
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    fontWeight: 700,
+  },
+  tableRow: {
+    flexDirection: "row",
+    paddingVertical: 5,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ebe6f8",
+  },
+  cellSm: { width: "18%" },
+  cellMd: { width: "24%" },
+  cellDate: { width: "22%" },
+  glucoseBlock: { marginBottom: 6 },
+  glucoseValueLine: { fontSize: 10, lineHeight: 1.4 },
+  glucoseLabel: { fontWeight: 700 },
+  glucoseMealLine: { fontSize: 9, color: "#6f6985", lineHeight: 1.35 },
+  glucoseHigh: { color: "#c2410c" },
+  muted: { color: "#6f6985", fontSize: 9, marginTop: 12 },
+  pageLandscape: {
+    paddingTop: 20,
+    paddingBottom: 16,
+    paddingHorizontal: 22,
+    fontFamily: "Roboto",
+    fontSize: 8,
+    color: "#342e45",
+  },
+  titleLandscape: {
+    fontSize: 15,
+    fontWeight: 700,
+    marginBottom: 2,
+  },
+  subtitleLandscape: {
+    fontSize: 9,
+    color: "#6f6985",
+    marginBottom: 10,
+  },
+  mutedLandscape: {
+    color: "#6f6985",
+    fontSize: 7,
+    marginTop: 8,
+  },
+  tableHeaderGroup: {
+    flexDirection: "row",
+    backgroundColor: "#eeeaff",
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+    fontWeight: 700,
+    fontSize: 7,
+  },
+  tableGroupTitleSugarLandscape: {
+    width: "20%",
+    textAlign: "center",
+  },
+  tableGroupTitleFoodLandscape: {
+    width: "72%",
+    textAlign: "center",
+  },
+  cellDateLandscape: { width: "8%" },
+  cellSugarHeaderLandscape: {
+    width: "5%",
+    textAlign: "center",
+    fontSize: 6,
+    lineHeight: 1.15,
+  },
+  cellSugarLandscape: { width: "5%", textAlign: "center", fontSize: 7 },
+  cellFoodLandscape: { width: "14.4%", fontSize: 6.5, lineHeight: 1.2 },
+});

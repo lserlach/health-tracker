@@ -19,11 +19,20 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DayNavigator } from "@/components/ui/day-navigator";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageLoadingState } from "@/components/ui/page-loading-state";
 import { Toast } from "@/components/ui/toast";
 import { getDefaultMeasuredAt, parseDateKey, toDateKey } from "@/lib/dates/day";
 
 interface GlucosePageClientProps {
   minDateKey: string;
+  initialDateKey: string;
+  initialLogs: GlucoseLog[];
+  initialPendingMeals: MealLog[];
+}
+
+interface GlucoseDayData {
+  logs: GlucoseLog[];
+  pendingMeals: MealLog[];
 }
 
 function sortGlucoseLogs(logs: GlucoseLog[]) {
@@ -32,11 +41,20 @@ function sortGlucoseLogs(logs: GlucoseLog[]) {
   );
 }
 
-export function GlucosePageClient({ minDateKey }: GlucosePageClientProps) {
-  const [dateKey, setDateKey] = useState(toDateKey());
-  const [logs, setLogs] = useState<GlucoseLog[]>([]);
-  const [pendingMeals, setPendingMeals] = useState<MealLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export function GlucosePageClient({
+  minDateKey,
+  initialDateKey,
+  initialLogs,
+  initialPendingMeals,
+}: GlucosePageClientProps) {
+  const [dateKey, setDateKey] = useState(initialDateKey);
+  const [dayDataByDate, setDayDataByDate] = useState<Record<string, GlucoseDayData>>({
+    [initialDateKey]: {
+      logs: initialLogs,
+      pendingMeals: initialPendingMeals,
+    },
+  });
+  const [loadingDateKey, setLoadingDateKey] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<GlucoseLog | null>(null);
   const [pendingMealTarget, setPendingMealTarget] = useState<MealLog | null>(null);
@@ -46,23 +64,36 @@ export function GlucosePageClient({ minDateKey }: GlucosePageClientProps) {
     null,
   );
 
-  const loadDayData = useCallback(async () => {
-    setIsLoading(true);
-    const result = await getGlucoseDayDataAction(dateKey);
+  const loadDayData = useCallback(async (targetDateKey: string) => {
+    setLoadingDateKey(targetDateKey);
+    const result = await getGlucoseDayDataAction(targetDateKey);
     if (result.error) {
       setToast({ message: result.error, variant: "error" });
-      setLogs([]);
-      setPendingMeals([]);
+      setDayDataByDate((current) => ({
+        ...current,
+        [targetDateKey]: { logs: [], pendingMeals: [] },
+      }));
     } else {
-      setLogs(result.logs);
-      setPendingMeals(result.pendingMeals);
+      setDayDataByDate((current) => ({
+        ...current,
+        [targetDateKey]: {
+          logs: result.logs,
+          pendingMeals: result.pendingMeals,
+        },
+      }));
     }
-    setIsLoading(false);
-  }, [dateKey]);
+    setLoadingDateKey(null);
+  }, []);
 
   useEffect(() => {
-    void loadDayData();
-  }, [loadDayData]);
+    if (dayDataByDate[dateKey] !== undefined) return;
+    void loadDayData(dateKey);
+  }, [dateKey, dayDataByDate, loadDayData]);
+
+  const dayData = dayDataByDate[dateKey];
+  const logs = dayData?.logs ?? [];
+  const pendingMeals = dayData?.pendingMeals ?? [];
+  const isLoading = dayData === undefined || loadingDateKey === dateKey;
 
   function closeSheet() {
     setSheetOpen(false);
@@ -71,34 +102,48 @@ export function GlucosePageClient({ minDateKey }: GlucosePageClientProps) {
   }
 
   async function handleSubmit(values: GlucoseFormValues) {
-    const result = await saveGlucoseLogAction(values, editingLog?.id, {
-      mealLogId: pendingMealTarget?.id,
-      eatenAt: pendingMealTarget?.eaten_at,
+    const currentEditingLog = editingLog;
+    const currentPendingMealTarget = pendingMealTarget;
+
+    closeSheet();
+
+    const result = await saveGlucoseLogAction(values, currentEditingLog?.id, {
+      mealLogId: currentPendingMealTarget?.id,
+      eatenAt: currentPendingMealTarget?.eaten_at,
     });
 
     if (result.error) {
-      setToast({ message: result.error, variant: "error" });
-      return;
+      setEditingLog(currentEditingLog);
+      setPendingMealTarget(currentPendingMealTarget);
+      setSheetOpen(true);
+      return { error: result.error };
     }
 
     if (result.data) {
-      setLogs((current) =>
-        sortGlucoseLogs(
-          editingLog
-            ? current.map((log) => (log.id === editingLog.id ? result.data! : log))
-            : [result.data, ...current],
-        ),
-      );
-
-      if (pendingMealTarget) {
-        setPendingMeals((current) =>
-          current.filter((meal) => meal.id !== pendingMealTarget.id),
+      setDayDataByDate((current) => {
+        const currentDay = current[dateKey] ?? { logs: [], pendingMeals: [] };
+        const nextLogs = sortGlucoseLogs(
+          currentEditingLog
+            ? currentDay.logs.map((log) =>
+                log.id === currentEditingLog.id ? result.data! : log,
+              )
+            : [result.data!, ...currentDay.logs],
         );
-      }
+        const nextPendingMeals = currentPendingMealTarget
+          ? currentDay.pendingMeals.filter((meal) => meal.id !== currentPendingMealTarget.id)
+          : currentDay.pendingMeals;
+
+        return {
+          ...current,
+          [dateKey]: {
+            logs: nextLogs,
+            pendingMeals: nextPendingMeals,
+          },
+        };
+      });
     }
 
-    setToast({ message: editingLog ? "Запись обновлена" : "Запись добавлена", variant: "success" });
-    closeSheet();
+    setToast({ message: currentEditingLog ? "Запись обновлена" : "Запись добавлена", variant: "success" });
   }
 
   async function handleDeleteConfirm() {
@@ -106,19 +151,36 @@ export function GlucosePageClient({ minDateKey }: GlucosePageClientProps) {
 
     const deletedLog = deleteTarget;
     setIsDeleting(true);
-    setLogs((current) => current.filter((log) => log.id !== deletedLog.id));
+    setDayDataByDate((current) => {
+      const currentDay = current[dateKey] ?? { logs: [], pendingMeals: [] };
+      return {
+        ...current,
+        [dateKey]: {
+          ...currentDay,
+          logs: currentDay.logs.filter((log) => log.id !== deletedLog.id),
+        },
+      };
+    });
     setDeleteTarget(null);
 
     const result = await deleteGlucoseLogAction(deletedLog.id);
     setIsDeleting(false);
 
     if (result.error) {
-      setLogs((current) => sortGlucoseLogs([deletedLog, ...current]));
+      setDayDataByDate((current) => {
+        const currentDay = current[dateKey] ?? { logs: [], pendingMeals: [] };
+        return {
+          ...current,
+          [dateKey]: {
+            ...currentDay,
+            logs: sortGlucoseLogs([deletedLog, ...currentDay.logs]),
+          },
+        };
+      });
       setToast({ message: result.error, variant: "error" });
       return;
     }
 
-    await loadDayData();
     setToast({ message: "Запись удалена", variant: "success" });
   }
 
@@ -149,17 +211,11 @@ export function GlucosePageClient({ minDateKey }: GlucosePageClientProps) {
 
       <section>
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Загрузка...</p>
+          <PageLoadingState />
         ) : !hasEntries ? (
           <EmptyState
             title="Нет измерений за этот день"
             description="Добавьте запись сахара за выбранную дату."
-            action={
-              <Button onClick={openCreateSheet}>
-                <Plus size={18} weight="bold" />
-                Добавить
-              </Button>
-            }
           />
         ) : (
           <GlucoseDayList

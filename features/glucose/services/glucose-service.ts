@@ -9,6 +9,8 @@ function mapFormToInsert(values: GlucoseFormValues, userId: string) {
     measured_at: fromDatetimeLocalValue(values.measured_at).toISOString(),
     value: values.value,
     measurement_type: values.measurement_type,
+    meal_slot:
+      values.measurement_type === "after_meal" ? values.meal_slot ?? null : null,
     meal_text:
       values.measurement_type === "after_meal" ? values.meal_text?.trim() || null : null,
     minutes_after_meal: null,

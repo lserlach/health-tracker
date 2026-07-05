@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils/cn";
 interface MedicationChecklistProps {
   logs: MedicationLogWithMedication[];
   dateKey?: string;
-  pendingLogId?: string | null;
   onToggleTaken: (log: MedicationLogWithMedication) => void;
   onToggleSkipped: (log: MedicationLogWithMedication) => void;
   className?: string;
@@ -20,7 +19,6 @@ interface MedicationChecklistProps {
 export function MedicationChecklist({
   logs,
   dateKey = toDateKey(),
-  pendingLogId = null,
   onToggleTaken,
   onToggleSkipped,
   className,
@@ -42,7 +40,6 @@ export function MedicationChecklist({
         {logs.map((log) => {
           const isTaken = log.status === "taken";
           const isSkipped = log.status === "skipped";
-          const isPending = pendingLogId === log.id;
           const isOverdue =
             dateKey === toDateKey() &&
             log.status === "pending" &&
@@ -63,7 +60,7 @@ export function MedicationChecklist({
                       ? `Отменить приём: ${log.medications.name}`
                       : `Отметить принятым: ${log.medications.name}`
                   }
-                  disabled={isPending || isSkipped}
+                  disabled={isSkipped}
                   onClick={() => onToggleTaken(log)}
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
@@ -71,7 +68,6 @@ export function MedicationChecklist({
                       ? "border-primary bg-primary text-white"
                       : "border-primary/25 bg-card",
                     isSkipped && "border-muted-foreground/25 bg-muted/30",
-                    isPending && "opacity-60",
                   )}
                 >
                   {isTaken ? <Check size={16} weight="bold" aria-hidden /> : null}
@@ -79,7 +75,6 @@ export function MedicationChecklist({
 
                 <button
                   type="button"
-                  disabled={isPending}
                   onClick={() => onToggleTaken(log)}
                   className="flex min-w-0 flex-1 items-center gap-3 text-left"
                 >
@@ -113,12 +108,12 @@ export function MedicationChecklist({
                       ? `Вернуть в список: ${log.medications.name}`
                       : `Пропустить: ${log.medications.name}`
                   }
-                  disabled={isPending || isTaken}
+                  disabled={isTaken}
                   onClick={() => onToggleSkipped(log)}
                   className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/40",
                     isSkipped && "bg-muted/40 text-foreground",
-                    (isPending || isTaken) && "opacity-40",
+                    isTaken && "opacity-40",
                   )}
                 >
                   <X size={16} weight="bold" aria-hidden />

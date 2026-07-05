@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import {
   defaultScheduleTimes,
@@ -13,13 +14,14 @@ import { getMedicationColorValue } from "@/features/medications/lib/medication-c
 import type { MedicationIconValue } from "@/features/medications/lib/medication-icon-values";
 import type { Medication } from "@/types/database.types";
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
 interface MedicationFormProps {
   initialData?: Medication;
-  onSubmit: (values: MedicationFormValues) => Promise<void>;
+  onSubmit: (values: MedicationFormValues) => Promise<{ error?: string } | void>;
   onCancel: () => void;
 }
 
@@ -51,6 +53,7 @@ function getDefaultValues(initialData?: Medication): MedicationFormValues {
 }
 
 export function MedicationForm({ initialData, onSubmit, onCancel }: MedicationFormProps) {
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -60,6 +63,7 @@ export function MedicationForm({ initialData, onSubmit, onCancel }: MedicationFo
     control,
     formState: { errors, isSubmitting },
   } = useForm<MedicationFormValues>({
+    resolver: zodResolver(medicationFormSchema),
     defaultValues: getDefaultValues(initialData),
   });
 
@@ -69,6 +73,7 @@ export function MedicationForm({ initialData, onSubmit, onCancel }: MedicationFo
   useEffect(() => {
     reset(getDefaultValues(initialData));
     prevTimesPerDay.current = initialData?.times_per_day ?? 1;
+    setSubmitError(null);
   }, [initialData, reset]);
 
   useEffect(() => {
@@ -78,13 +83,16 @@ export function MedicationForm({ initialData, onSubmit, onCancel }: MedicationFo
   }, [timesPerDay, setValue]);
 
   async function handleFormSubmit(values: MedicationFormValues) {
-    const parsed = medicationFormSchema.safeParse(values);
-    if (!parsed.success) return;
-    await onSubmit(parsed.data);
+    setSubmitError(null);
+    const result = await onSubmit(values);
+    if (result?.error) {
+      setSubmitError(result.error);
+    }
   }
 
   return (
-    <form className="space-y-4" onSubmit={handleSubmit(handleFormSubmit)}>
+    <form className="min-w-0 max-w-full space-y-4" onSubmit={handleSubmit(handleFormSubmit)}>
+      <FormError message={submitError} />
       <Input
         label="Название"
         placeholder="Магний B6"
@@ -142,6 +150,7 @@ export function MedicationForm({ initialData, onSubmit, onCancel }: MedicationFo
             key={`schedule-${index}`}
             label={`Время приёма ${index + 1}`}
             type="time"
+            className="min-w-0 max-w-full"
             error={errors.schedule_times?.[index]?.message}
             {...register(`schedule_times.${index}` as const)}
           />
@@ -161,7 +170,7 @@ export function MedicationForm({ initialData, onSubmit, onCancel }: MedicationFo
         )}
       />
 
-      <div className="flex gap-3 pt-2">
+      <div className="flex min-w-0 gap-3 pt-2">
         <Button type="button" variant="secondary" className="flex-1" onClick={onCancel}>
           Отмена
         </Button>

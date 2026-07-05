@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { ListBullets, Plus } from "@phosphor-icons/react";
 import {
@@ -29,10 +30,14 @@ import { DatetimePickerField } from "@/components/ui/datetime-picker-field";
 import { DayNavigator } from "@/components/ui/day-navigator";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { FormError } from "@/components/ui/form-error";
+import { PageLoadingState } from "@/components/ui/page-loading-state";
 import { Toast } from "@/components/ui/toast";
 
 interface BloodPressurePageClientProps {
   minDateKey: string;
+  initialDateKey: string;
+  initialDayLogs: BloodPressureLog[];
 }
 
 type ViewMode = "day" | "all";
@@ -46,20 +51,30 @@ function sortBloodPressureLogs(logs: BloodPressureLog[]) {
 const headerIconButtonClassName =
   "flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary-soft hover:text-primary";
 
-export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientProps) {
+export function BloodPressurePageClient({
+  minDateKey,
+  initialDateKey,
+  initialDayLogs,
+}: BloodPressurePageClientProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("day");
-  const [dateKey, setDateKey] = useState(toDateKey());
-  const [logs, setLogs] = useState<BloodPressureLog[]>([]);
-  const [allLogs, setAllLogs] = useState<BloodPressureLog[]>([]);
+  const [dateKey, setDateKey] = useState(initialDateKey);
+  const [logsByDate, setLogsByDate] = useState<Record<string, BloodPressureLog[]>>({
+    [initialDateKey]: initialDayLogs,
+  });
+  const [allLogs, setAllLogs] = useState<BloodPressureLog[] | null>(null);
+  const [loadingDayDateKey, setLoadingDayDateKey] = useState<string | null>(null);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<BloodPressureLog | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BloodPressureLog | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(
     null,
   );
 
   const form = useForm<BloodPressureFormValues>({
+    resolver: zodResolver(bloodPressureFormSchema),
     defaultValues: {
       measured_at: toDatetimeLocalValue(),
       systolic: Number.NaN,
@@ -67,41 +82,46 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
       pulse: "",
     },
   });
-  const { control } = form;
+  const { control, formState: { errors } } = form;
 
-  const loadDayLogs = useCallback(async () => {
-    const result = await getBloodPressureLogsForDayAction(dateKey);
+  const loadDayLogs = useCallback(async (targetDateKey: string) => {
+    setLoadingDayDateKey(targetDateKey);
+    const result = await getBloodPressureLogsForDayAction(targetDateKey);
     if (result.error) {
       setToast({ message: result.error, variant: "error" });
-      setLogs([]);
-      return;
+      setLogsByDate((current) => ({ ...current, [targetDateKey]: [] }));
+    } else {
+      setLogsByDate((current) => ({ ...current, [targetDateKey]: result.data }));
     }
-    setLogs(result.data);
-  }, [dateKey]);
+    setLoadingDayDateKey(null);
+  }, []);
 
   const loadAllLogs = useCallback(async () => {
+    setIsLoadingAll(true);
     const result = await getAllBloodPressureLogsAction();
     if (result.error) {
       setToast({ message: result.error, variant: "error" });
       setAllLogs([]);
-      return;
+    } else {
+      setAllLogs(result.data);
     }
-    setAllLogs(result.data);
+    setIsLoadingAll(false);
   }, []);
 
   useEffect(() => {
-    if (viewMode === "day") {
-      void loadDayLogs();
-    }
-  }, [viewMode, loadDayLogs]);
+    if (viewMode !== "day") return;
+    if (logsByDate[dateKey] !== undefined) return;
+    void loadDayLogs(dateKey);
+  }, [viewMode, dateKey, logsByDate, loadDayLogs]);
 
   useEffect(() => {
-    if (viewMode === "all") {
-      void loadAllLogs();
-    }
-  }, [viewMode, loadAllLogs]);
+    if (viewMode !== "all") return;
+    if (allLogs !== null) return;
+    void loadAllLogs();
+  }, [viewMode, allLogs, loadAllLogs]);
 
   function openSheet(log?: BloodPressureLog) {
+    setFormError(null);
     setEditing(log ?? null);
     form.reset(
       log
@@ -125,58 +145,69 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
   }
 
   function updateLogCollections(savedLog: BloodPressureLog, isEdit: boolean) {
+    const savedDateKey = toDateKey(new Date(savedLog.measured_at));
+
     setAllLogs((current) =>
       sortBloodPressureLogs(
         isEdit
-          ? current.map((log) => (log.id === savedLog.id ? savedLog : log))
-          : [savedLog, ...current],
+          ? (current ?? []).map((log) => (log.id === savedLog.id ? savedLog : log))
+          : [savedLog, ...(current ?? [])],
       ),
     );
 
-    const savedDateKey = toDateKey(new Date(savedLog.measured_at));
-    if (savedDateKey === dateKey) {
-      setLogs((current) =>
-        sortBloodPressureLogs(
-          isEdit
-            ? current.map((log) => (log.id === savedLog.id ? savedLog : log))
-            : [savedLog, ...current],
-        ),
-      );
-    } else if (isEdit) {
-      setLogs((current) => current.filter((log) => log.id !== savedLog.id));
-    }
+    setLogsByDate((current) => {
+      const updated = { ...current };
+
+      for (const key of Object.keys(updated)) {
+        updated[key] = updated[key].filter((log) => log.id !== savedLog.id);
+      }
+
+      const targetLogs = updated[savedDateKey] ?? [];
+      updated[savedDateKey] = sortBloodPressureLogs([savedLog, ...targetLogs]);
+
+      return updated;
+    });
   }
 
   function removeLogFromCollections(deletedLog: BloodPressureLog) {
-    setAllLogs((current) => current.filter((log) => log.id !== deletedLog.id));
-    setLogs((current) => current.filter((log) => log.id !== deletedLog.id));
+    setAllLogs((current) => (current ?? []).filter((log) => log.id !== deletedLog.id));
+    setLogsByDate((current) =>
+      Object.fromEntries(
+        Object.entries(current).map(([key, logs]) => [
+          key,
+          logs.filter((log) => log.id !== deletedLog.id),
+        ]),
+      ),
+    );
   }
 
   async function onSubmit(values: BloodPressureFormValues) {
-    const parsed = bloodPressureFormSchema.safeParse(values);
-    if (!parsed.success) {
-      setToast({ message: "Проверьте введённые значения", variant: "error" });
-      return;
-    }
-
+    setFormError(null);
+    const currentEditing = editing;
+    setSheetOpen(false);
     setIsSubmitting(true);
-    const result = await saveBloodPressureLogAction(parsed.data, editing?.id);
+
+    const result = await saveBloodPressureLogAction(values, currentEditing?.id);
     setIsSubmitting(false);
 
     if (result.error) {
-      setToast({ message: result.error, variant: "error" });
+      setEditing(currentEditing);
+      setSheetOpen(true);
+      setFormError(result.error);
       return;
     }
 
     if (result.data) {
-      updateLogCollections(result.data, Boolean(editing));
+      updateLogCollections(result.data, Boolean(currentEditing));
     }
 
-    setToast({ message: editing ? "Запись обновлена" : "Запись добавлена", variant: "success" });
-    setSheetOpen(false);
+    setToast({ message: currentEditing ? "Запись обновлена" : "Запись добавлена", variant: "success" });
   }
 
-  const visibleLogs = viewMode === "day" ? logs : allLogs;
+  const dayLogs = logsByDate[dateKey];
+  const isLoadingDay = viewMode === "day" && (dayLogs === undefined || loadingDayDateKey === dateKey);
+  const isLoading = isLoadingDay || (viewMode === "all" && (isLoadingAll || allLogs === null));
+  const visibleLogs = viewMode === "day" ? (dayLogs ?? []) : (allLogs ?? []);
 
   return (
     <PageContainer>
@@ -202,7 +233,9 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
         <DayNavigator dateKey={dateKey} minDateKey={minDateKey} onChange={setDateKey} />
       ) : null}
 
-      {visibleLogs.length === 0 ? (
+      {isLoading ? (
+        <PageLoadingState />
+      ) : visibleLogs.length === 0 ? (
         <EmptyState
           title={viewMode === "all" ? "Нет измерений" : "Нет измерений за этот день"}
           description={
@@ -210,17 +243,16 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
               ? "Добавьте первое измерение давления."
               : "Добавьте измерение давления за выбранную дату."
           }
-          action={<Button onClick={() => openSheet()}>Добавить</Button>}
         />
       ) : viewMode === "all" ? (
         <BloodPressureAllLogsList
-          logs={allLogs}
+          logs={allLogs ?? []}
           onEdit={(log) => openSheet(log)}
           onDelete={(log) => setDeleteTarget(log)}
         />
       ) : (
         <div className="space-y-3">
-          {logs.map((log) => (
+          {(dayLogs ?? []).map((log) => (
             <BloodPressureLogCard
               key={log.id}
               log={log}
@@ -245,6 +277,7 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
         onClose={() => setSheetOpen(false)}
       >
         <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+          <FormError message={formError} />
           <Controller
             name="measured_at"
             control={control}
@@ -253,6 +286,7 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
+                error={errors.measured_at?.message}
               />
             )}
           />
@@ -266,6 +300,7 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
                   type="number"
                   inputMode="numeric"
                   placeholder="120"
+                  error={errors.systolic?.message}
                   ref={ref}
                   onBlur={onBlur}
                   value={Number.isNaN(value) ? "" : value}
@@ -285,6 +320,7 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
                   type="number"
                   inputMode="numeric"
                   placeholder="80"
+                  error={errors.diastolic?.message}
                   ref={ref}
                   onBlur={onBlur}
                   value={Number.isNaN(value) ? "" : value}
@@ -296,7 +332,12 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
               )}
             />
           </div>
-          <Input label="Пульс" type="number" {...form.register("pulse")} />
+          <Input
+            label="Пульс"
+            type="number"
+            error={errors.pulse?.message}
+            {...form.register("pulse")}
+          />
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? "Сохраняем..." : "Сохранить"}
           </Button>
@@ -316,12 +357,17 @@ export function BloodPressurePageClient({ minDateKey }: BloodPressurePageClientP
 
           const result = await deleteBloodPressureLogAction(deletedLog.id);
           if (result.error) {
-            if (viewMode === "all") {
-              setAllLogs((current) => sortBloodPressureLogs([deletedLog, ...current]));
+            if (viewMode === "all" && allLogs) {
+              setAllLogs(sortBloodPressureLogs([deletedLog, ...allLogs]));
             }
-            if (toDateKey(new Date(deletedLog.measured_at)) === dateKey) {
-              setLogs((current) => sortBloodPressureLogs([deletedLog, ...current]));
-            }
+            setLogsByDate((current) => {
+              const deletedDateKey = toDateKey(new Date(deletedLog.measured_at));
+              const dayLogsForDate = current[deletedDateKey] ?? [];
+              return {
+                ...current,
+                [deletedDateKey]: sortBloodPressureLogs([deletedLog, ...dayLogsForDate]),
+              };
+            });
             setToast({ message: result.error, variant: "error" });
             return;
           }

@@ -29,7 +29,7 @@ export function EmptyState({
         </div>
       ) : null}
       <div className="space-y-1">
-        <p className="font-heading font-medium text-foreground">{title}</p>
+        <p className="font-heading text-lg font-medium text-foreground">{title}</p>
         {description ? (
           <p className="text-sm text-muted-foreground">{description}</p>
         ) : null}
