@@ -6,19 +6,19 @@ import { getReportDownloadFilename } from "@/features/reports/lib/report-kind";
 import type { ReportData } from "@/features/reports/lib/report-types";
 
 export async function downloadReport(data: ReportData, kind: ReportKind) {
-  const [{ pdf }, documentModule] = await Promise.all([
-    import("@react-pdf/renderer"),
-    kind === "glucose"
-      ? import("@/features/reports/pdf/GlucoseReportDocument")
-      : import("@/features/reports/pdf/BloodPressureReportDocument"),
-  ]);
+  const { pdf } = await import("@react-pdf/renderer");
+  let blob: Blob;
 
-  const DocumentComponent =
-    kind === "glucose"
-      ? documentModule.GlucoseReportDocument
-      : documentModule.BloodPressureReportDocument;
+  if (kind === "glucose") {
+    const { GlucoseReportDocument } = await import("@/features/reports/pdf/GlucoseReportDocument");
+    blob = await pdf(createElement(GlucoseReportDocument, { data }) as never).toBlob();
+  } else {
+    const { BloodPressureReportDocument } = await import(
+      "@/features/reports/pdf/BloodPressureReportDocument"
+    );
+    blob = await pdf(createElement(BloodPressureReportDocument, { data }) as never).toBlob();
+  }
 
-  const blob = await pdf(createElement(DocumentComponent, { data }) as never).toBlob();
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
 
