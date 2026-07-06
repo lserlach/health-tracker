@@ -3,7 +3,7 @@
 import { Check, X } from "@phosphor-icons/react";
 import { MedicationIconCircle } from "@/features/medications/components/medication-icon-circle";
 import type { MedicationLogWithMedication } from "@/features/medications/services/generate-daily-logs";
-import { formatTime } from "@/lib/dates/format";
+import { formatReminderTime } from "@/lib/dates/reminder-timezone";
 import { toDateKey } from "@/lib/dates/day";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils/cn";
@@ -95,7 +95,7 @@ export function MedicationChecklist({
                       {log.medications.name}
                     </span>
                     <span className="mt-0.5 block text-xs text-muted-foreground">
-                      {log.medications.dosage} · {formatTime(log.scheduled_for)}
+                      {log.medications.dosage} · {formatReminderTime(log.scheduled_for)}
                       {isSkipped ? " · пропущено" : isTaken ? " · принято" : null}
                     </span>
                   </span>

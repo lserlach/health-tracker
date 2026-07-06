@@ -1,4 +1,8 @@
-import { getDayRange } from "@/lib/dates/format";
+import {
+  buildReminderDateTime,
+  getReminderDateKey,
+  getReminderDayRange,
+} from "@/lib/dates/reminder-timezone";
 import type { Medication, MedicationLog } from "@/types/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -7,10 +11,13 @@ export interface MedicationLogWithMedication extends MedicationLog {
 }
 
 export function buildScheduledFor(date: Date, time: string) {
-  const [hours, minutes] = time.split(":").map(Number);
-  const scheduled = new Date(date);
-  scheduled.setHours(hours, minutes, 0, 0);
-  return scheduled.toISOString();
+  const dateKey = getReminderDateKey(date);
+  return buildReminderDateTime(dateKey, time).toISOString();
+}
+
+function getDayRange(date: Date) {
+  const { start, end } = getReminderDayRange(date);
+  return { start, end };
 }
 
 export async function fetchMedicationLogsForDay(
@@ -61,6 +68,25 @@ export async function ensureTodayMedicationLogs(
         status: "pending" as const,
       }));
   });
+
+  const { start, end } = getDayRange(date);
+  const expectedScheduledFor = new Set(rows.map((row) => row.scheduled_for));
+
+  const { data: existingLogs } = await supabase
+    .from("medication_logs")
+    .select("id, scheduled_for, status")
+    .eq("user_id", userId)
+    .gte("scheduled_for", start)
+    .lte("scheduled_for", end)
+    .eq("status", "pending");
+
+  const staleLogIds = (existingLogs ?? [])
+    .filter((log) => !expectedScheduledFor.has(log.scheduled_for))
+    .map((log) => log.id);
+
+  if (staleLogIds.length > 0) {
+    await supabase.from("medication_logs").delete().in("id", staleLogIds);
+  }
 
   if (rows.length > 0) {
     await supabase.from("medication_logs").upsert(rows, {
