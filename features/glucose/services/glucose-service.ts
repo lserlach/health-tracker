@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { getReminderDayRange } from "@/lib/dates/reminder-timezone";
 import type { GlucoseLog } from "@/types/database.types";
 import type { GlucoseFormValues } from "@/features/glucose/lib/validation";
 import { fromDatetimeLocalValue } from "@/lib/dates/format";
@@ -31,16 +32,13 @@ export async function fetchGlucoseLogs(limit = 100) {
 
 export async function fetchTodayGlucoseLogs() {
   const supabase = createClient();
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
+  const { start, end } = getReminderDayRange();
 
   const { data, error } = await supabase
     .from("glucose_logs")
     .select("*")
-    .gte("measured_at", start.toISOString())
-    .lte("measured_at", end.toISOString())
+    .gte("measured_at", start)
+    .lte("measured_at", end)
     .order("measured_at", { ascending: false });
 
   if (error) throw error;

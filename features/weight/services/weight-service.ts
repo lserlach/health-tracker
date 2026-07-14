@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { getReminderDateKey } from "@/lib/dates/reminder-timezone";
 import type { WeightLog } from "@/types/database.types";
 import type { WeightFormValues } from "@/features/weight/lib/validation";
 import { fromDatetimeLocalValue } from "@/lib/dates/format";
@@ -24,8 +25,8 @@ export async function fetchWeightLogs(limit = 100) {
 
 export async function fetchTodayWeightLog() {
   const logs = await fetchWeightLogs(30);
-  const today = new Date().toDateString();
-  return logs.find((log) => new Date(log.measured_at).toDateString() === today) ?? null;
+  const todayKey = getReminderDateKey();
+  return logs.find((log) => getReminderDateKey(new Date(log.measured_at)) === todayKey) ?? null;
 }
 
 export async function createWeightLog(values: WeightFormValues, userId: string) {

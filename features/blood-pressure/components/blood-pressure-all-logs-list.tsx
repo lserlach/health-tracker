@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
+import { formatReminderDateTime, getReminderDateKey } from "@/lib/dates/reminder-timezone";
 import { isElevatedBloodPressure } from "@/features/blood-pressure/lib/validation";
 import { PulseIndicator } from "@/features/blood-pressure/components/pulse-indicator";
 import { cn } from "@/lib/utils/cn";
@@ -19,7 +20,7 @@ function groupLogsByMonth(logs: BloodPressureLog[]) {
   const groups = new Map<string, BloodPressureLog[]>();
 
   for (const log of logs) {
-    const monthKey = format(parseISO(log.measured_at), "yyyy-MM");
+    const monthKey = getReminderDateKey(new Date(log.measured_at)).slice(0, 7);
     const bucket = groups.get(monthKey) ?? [];
     bucket.push(log);
     groups.set(monthKey, bucket);
@@ -61,7 +62,7 @@ export function BloodPressureAllLogsList({
               <div key={log.id}>
                 <div className="flex items-center gap-3 px-4 py-3">
                   <span className="w-[7.25rem] shrink-0 text-sm text-muted-foreground">
-                    {format(parseISO(log.measured_at), "d MMM HH:mm", { locale: ru })}
+                    {formatReminderDateTime(log.measured_at)}
                   </span>
 
                   <div className="flex min-w-0 flex-1 items-center justify-end gap-2">

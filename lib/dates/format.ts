@@ -1,41 +1,48 @@
-import {
-  endOfDay,
-  format,
-  parseISO,
-  startOfDay,
-} from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
+import {
+  buildReminderDateTime,
+  formatReminderDate,
+  formatReminderDateTime,
+  formatReminderShortDate,
+  formatReminderTime,
+  getReminderClockTime,
+  getReminderDateKey,
+  getReminderDayRange,
+} from "@/lib/dates/reminder-timezone";
 
 export function toDatetimeLocalValue(date: Date = new Date()) {
-  return format(date, "yyyy-MM-dd'T'HH:mm");
+  return `${getReminderDateKey(date)}T${getReminderClockTime(date)}`;
 }
 
 export function fromDatetimeLocalValue(value: string) {
-  return new Date(value);
+  const [datePart, timePart = "00:00"] = value.split("T");
+  if (!datePart) return new Date(value);
+  return buildReminderDateTime(datePart, timePart.slice(0, 5));
 }
 
 export function formatDatetimeLocalLabel(value: string) {
   if (!value) return "Укажите дату и время";
-  return format(fromDatetimeLocalValue(value), "d MMMM yyyy, HH:mm", { locale: ru });
+  return formatReminderDateTime(fromDatetimeLocalValue(value));
 }
 
 export function formatDatetimeLocalDate(value: string) {
   if (!value) return "Выберите дату";
-  return format(fromDatetimeLocalValue(value), "d MMMM yyyy", { locale: ru });
+  return formatReminderDate(fromDatetimeLocalValue(value));
 }
 
 export function formatDatetimeLocalTime(value: string) {
   if (!value) return "00:00";
-  return format(fromDatetimeLocalValue(value), "HH:mm", { locale: ru });
+  return getReminderClockTime(fromDatetimeLocalValue(value));
 }
 
 export function getDatetimeLocalDatePart(value: string) {
-  if (!value) return format(new Date(), "yyyy-MM-dd");
+  if (!value) return getReminderDateKey();
   return value.slice(0, 10);
 }
 
 export function getDatetimeLocalTimePart(value: string) {
-  if (!value) return format(new Date(), "HH:mm");
+  if (!value) return getReminderClockTime(new Date());
   return value.slice(11, 16) || "00:00";
 }
 
@@ -44,18 +51,15 @@ export function combineDatetimeLocalParts(datePart: string, timePart: string) {
 }
 
 export function formatDateTime(value: string | Date) {
-  const date = typeof value === "string" ? parseISO(value) : value;
-  return format(date, "d MMM, HH:mm", { locale: ru });
+  return formatReminderDateTime(value);
 }
 
 export function formatTime(value: string | Date) {
-  const date = typeof value === "string" ? parseISO(value) : value;
-  return format(date, "HH:mm", { locale: ru });
+  return formatReminderTime(value);
 }
 
 export function formatDate(value: string | Date) {
-  const date = typeof value === "string" ? parseISO(value) : value;
-  return format(date, "d MMMM yyyy", { locale: ru });
+  return formatReminderDate(value);
 }
 
 export function formatDateKeyShort(dateKey: string) {
@@ -63,20 +67,15 @@ export function formatDateKeyShort(dateKey: string) {
 }
 
 export function formatTodayHeaderDate(date: Date = new Date()) {
-  return format(date, "d MMMM", { locale: ru });
+  return formatReminderShortDate(date);
 }
 
 export function getTodayRange() {
-  const now = new Date();
-  return {
-    start: startOfDay(now).toISOString(),
-    end: endOfDay(now).toISOString(),
-  };
+  const { start, end } = getReminderDayRange();
+  return { start, end };
 }
 
 export function getDayRange(date: Date) {
-  return {
-    start: startOfDay(date).toISOString(),
-    end: endOfDay(date).toISOString(),
-  };
+  const { start, end } = getReminderDayRange(date);
+  return { start, end };
 }

@@ -1,8 +1,9 @@
-import { addDays, format, isAfter, isBefore, parseISO, startOfDay, subDays } from "date-fns";
+import { addDays, isBefore, parseISO, startOfDay, subDays } from "date-fns";
 import { toDatetimeLocalValue } from "@/lib/dates/format";
+import { getReminderDateKey } from "@/lib/dates/reminder-timezone";
 
 export function toDateKey(date: Date = new Date()) {
-  return format(date, "yyyy-MM-dd");
+  return getReminderDateKey(date);
 }
 
 export function parseDateKey(dateKey: string) {
@@ -10,12 +11,13 @@ export function parseDateKey(dateKey: string) {
 }
 
 export function isToday(date: Date) {
-  return startOfDay(date).getTime() === startOfDay(new Date()).getTime();
+  return getReminderDateKey(date) === getReminderDateKey(new Date());
 }
 
 export function clampToToday(date: Date) {
-  const today = startOfDay(new Date());
-  return isAfter(date, today) ? today : date;
+  const todayKey = getReminderDateKey();
+  const dateKey = getReminderDateKey(date);
+  return dateKey > todayKey ? parseDateKey(todayKey) : date;
 }
 
 export function getDefaultMeasuredAt(selectedDay: Date) {
@@ -23,9 +25,8 @@ export function getDefaultMeasuredAt(selectedDay: Date) {
     return toDatetimeLocalValue();
   }
 
-  const value = new Date(selectedDay);
-  value.setHours(12, 0, 0, 0);
-  return toDatetimeLocalValue(value);
+  const dateKey = getReminderDateKey(selectedDay);
+  return `${dateKey}T12:00`;
 }
 
 export function getEarliestNavigationDate(options: {

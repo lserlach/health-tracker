@@ -1,7 +1,12 @@
-import { format, parseISO } from "date-fns";
-import { ru } from "date-fns/locale";
 import { parseDateKey } from "@/lib/dates/day";
+import {
+  formatReminderDate,
+  formatReminderDateTime,
+  formatReminderTime,
+} from "@/lib/dates/reminder-timezone";
 import type { ReportData } from "@/features/reports/lib/report-types";
+import { format } from "date-fns";
+import { ru } from "date-fns/locale";
 
 export function formatReportPeriodRange(dateFrom: string, dateTo: string) {
   const from = format(parseDateKey(dateFrom.slice(0, 10)), "dd.MM.yy");
@@ -18,15 +23,15 @@ export function formatReportDayDateCompact(dateKey: string) {
 }
 
 export function formatReportDateTime(value: string) {
-  return format(parseISO(value), "d MMM yyyy, HH:mm", { locale: ru });
+  return formatReminderDateTime(value);
 }
 
 export function formatReportDate(value: string) {
-  return format(parseISO(value), "d MMM yyyy", { locale: ru });
+  return formatReminderDate(value);
 }
 
 export function formatReportTime(value: string) {
-  return format(parseISO(value), "HH:mm", { locale: ru });
+  return formatReminderTime(value);
 }
 
 export function formatBloodPressureValue(systolic: number, diastolic: number) {
